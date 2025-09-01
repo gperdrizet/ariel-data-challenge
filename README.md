@@ -23,7 +23,7 @@ Create a Python 3.8 virtual environment:
 python3.8 -m venv .venv
 ```
 
-### 1.2. Tensorflow
+### 1.2. TensorFlow
 
 Set `LD_LIBRARY_PATH` from `.venv/bin/activate`:
 
@@ -40,7 +40,7 @@ pip install nvidia-tensorrt==7.2.3.4
 pip install tensorflow==2.11.0
 ```
 
-Test tensorflow with:
+Test TensorFlow with:
 
 ```bash
 python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
