@@ -52,7 +52,7 @@ You should see something like:
 [PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU'), PhysicalDevice(name='/physical_device:GPU:1', device_type='GPU'), PhysicalDevice(name='/physical_device:GPU:2', device_type='GPU')]
 ```
 
-### 1.2. LightGBM
+### 1.3. LightGBM
 
 Install LightGBM with CUDA support. For the `--config-settings` flag to work pip must be >= 23.1.
 
@@ -60,13 +60,13 @@ Install LightGBM with CUDA support. For the `--config-settings` flag to work pip
 pip install lightgbm --no-binary lightgbm --config-settings=cmake.define.USE_CUDA=ON
 ```
 
-### 1.3. Other requirements
+### 1.4. Other requirements
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 1.1. Optuna RDB storage
+### 1.5. Optuna RDB storage
 
 Optuna needs an SQL database to store run information. Create a PostgreSQL database called `calories`:
 
@@ -96,3 +96,9 @@ Once run data is present, you can start the Optuna dashboard with:
 ```bash
 gunicorn -b YOUR_LISTEN_IP --workers 2 functions.optuna_dashboard:application
 ```
+
+## 2. Data acquisition
+
+Note: the Kaggle API cannot be used to download this dataset unless you have >265 GB system memory. When calling `competition_download_files()` the python library appears to try and read the whole archive into memory before writing anything to disk. Unfortunately, I only have 128 GB system memory.
+
+Get the data the old fashioned way - manually download the archive by clicking the link in the competition.

@@ -22,8 +22,8 @@ SUBMISSION_DATA_FILE = f'{RAW_DATA_DIRECTORY}/test.csv'
 # Optuna RDB credentials ####################################
 #############################################################
 
-USER = os.environ['POSTGRES_USER']
-PASSWD = os.environ['POSTGRES_PASSWD']
-HOST = os.environ['POSTGRES_HOST']
-PORT = os.environ['POSTGRES_PORT']
-STUDY_NAME = 'ariel_data'
+# USER = os.environ['POSTGRES_USER']
+# PASSWD = os.environ['POSTGRES_PASSWD']
+# HOST = os.environ['POSTGRES_HOST']
+# PORT = os.environ['POSTGRES_PORT']
+# STUDY_NAME = 'ariel_data'
