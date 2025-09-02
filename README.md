@@ -1,6 +1,6 @@
 # Ariel Data Challenge
 
-NeurIPS 2025 Kaggle competition.
+Kaggle competition: [NeurIPS - Ariel Data Challenge 2025](https://www.kaggle.com/competitions/ariel-data-challenge-2025/overview)
 
 ## 1. Setup
 
