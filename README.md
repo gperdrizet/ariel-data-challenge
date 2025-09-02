@@ -101,4 +101,8 @@ gunicorn -b YOUR_LISTEN_IP --workers 2 functions.optuna_dashboard:application
 
 Note: the Kaggle API cannot be used to download this dataset unless you have >265 GB system memory. When calling `competition_download_files()` the python library appears to try and read the whole archive into memory before writing anything to disk. Unfortunately, I only have 128 GB system memory.
 
-Get the data the old fashioned way - manually download the archive by clicking the link in the competition.
+Get the data the old fashioned way - manually download the archive by clicking the link in the competition. Then decompress with:
+
+```bash
+unzip ariel-data-challenge-2025.zip
+```
