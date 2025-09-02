@@ -12,6 +12,9 @@ COMPETITION_NAME = 'ariel-data-challenge-2025'
 # Data paths
 DATA_DIRECTORY = './data'
 RAW_DATA_DIRECTORY = f'{DATA_DIRECTORY}/raw'
+METADATA_DIRECTORY = f'{DATA_DIRECTORY}/metadata'
+
+FIGURES_DIRECTORY = './figures'
 
 #############################################################
 # Optuna RDB credentials ####################################
