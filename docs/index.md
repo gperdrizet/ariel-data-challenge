@@ -1,1 +1,3 @@
-# Ariel data challenge blog
+---
+layout: home
+---
