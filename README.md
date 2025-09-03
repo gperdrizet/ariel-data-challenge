@@ -1,5 +1,7 @@
 # Ariel Data Challenge
 
+[![pages-build-deployment](https://github.com/gperdrizet/ariel-data-challenge/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/gperdrizet/ariel-data-challenge/actions/workflows/pages/pages-build-deployment)
+
 Kaggle competition: [NeurIPS - Ariel Data Challenge 2025](https://www.kaggle.com/competitions/ariel-data-challenge-2025/overview)
 
 ## 1. Setup
