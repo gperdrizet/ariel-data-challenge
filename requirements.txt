@@ -5,4 +5,5 @@ optuna==4.3.0
 optuna-dashboard==0.18.0
 pandas==2.0.3
 psycopg2-binary==2.9.10
+pyarrow==17.0.0
 seaborn==0.13.2
