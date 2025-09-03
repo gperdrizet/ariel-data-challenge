@@ -24,7 +24,7 @@ Ariel (Atmospheric Remote-sensing Infrared Exoplanet Large-survey) is an ESA spa
 
 This competition helps advance the data analysis techniques that will be crucial for maximizing the scientific return from the actual Ariel mission observations.
 
-### About the Author
+## About the Author
 
 This solution repository is the work of George Perdrizet, who spent way too long in graduate school earning a PhD in Biochemistry and Molecular Biology before realizing that pipetting RNAs wasn't quite scratching the intellectual itch. After a brief stint teaching chemistry and making the questionable life choice of pivoting to machine learning via bootcamp, he now spends his days as a Senior Data Science Mentor at 4Geeks Academy, teaching the next generation of data scientists to avoid his mistakes.
 
