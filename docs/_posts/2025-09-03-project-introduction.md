@@ -17,13 +17,11 @@ I've started with an exploratory data analysis of the ground truth spectra to un
   <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/EDA/01.2-flux_distribution_by_wavelength.jpg" alt="Planet-Standardized Flux Distribution Heatmap">
 </p>
 
-<img src="[https://www.example.com/your-image.png](https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/EDA/01.2-flux_distribution_by_wavelength.jpg)" style="display: block; margin: 0 auto;">
-
 This heatmap shows the distribution of planet-standardized flux values across wavelengths. Each planet's spectrum has been standardized using its own mean and standard deviation, revealing the underlying spectral patterns independent of individual planet brightness levels. The x-axis shows wavelength indices, while the y-axis represents standardized flux values (Z-scores).
 
-<div align="center">
-![Hierarchically Clustered Spectra](https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/EDA/01.2-hierarchical_clustered_spectra.jpg)
-</div>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/EDA/01.2-hierarchical_clustered_spectra.jpg" alt="Hierarchically Clustered Spectra">
+</p>
 
 This visualization shows all 1100 planets ordered by hierarchical clustering based on their standardized spectral signatures. Each row represents a planet, and each column represents a wavelength. The planets have been grouped by spectral similarity using Ward linkage clustering, revealing distinct groups with similar atmospheric characteristics.
 
