@@ -1,12 +1,10 @@
-title: Your awesome title
+title: NeurIPS 2025: Ariel Data Challenge
 author:
-  name: GitHub User
-  email: your-email@domain.com
+  name: George Perdrizet
+  email: george@perdrizet.org
 
 description: >
-  Write an awesome description for your new site here. You can edit this line
-  in _config.yml. It will appear in your document head meta (for Google search
-  results) and in your feed.xml site description.
+  Blog documenting the progress of the Ariel Data Challenge for NeurIPS 2025.
 
 remote_theme: "jekyll/minima@1e8a445"
 
@@ -51,9 +49,12 @@ minima:
   #     * icon     Font Awesome icon id. `github` corresponds to `fa-github`.
   #     * url      Full URL of social profile.
   social_links:
-    - title: Minima Theme repository at GitHub
+    - title: Ariel Data Challenge repository at GitHub
       icon: github
-      url: "https://github.com/jekyll/minima"
-    - title: Jekyll at X (formerly Twitter)
-      icon: x-twitter
-      url: "https://x.com/jekyllrb"
+      url: "https://github.com/gperdrizet/ariel-data-challenge"
+    - title: George Perdrizet on Kaggle
+      icon: kaggle
+      url: "https://www.kaggle.com/gperdrizet"
+    - title: George Perdrizet on LinkedIn
+      icon: linkedin
+      url: "https://www.linkedin.com/in/gperdrizet/"
