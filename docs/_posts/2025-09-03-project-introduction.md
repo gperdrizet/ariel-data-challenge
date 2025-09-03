@@ -13,7 +13,7 @@ The Ariel space mission, scheduled to launch in 2029, will study the atmospheres
 
 I've started with an exploratory data analysis of the ground truth spectra to understand the dataset structure and characteristics. One of the key insights comes from examining how flux values are distributed across different wavelengths.
 
-[Planet-Standardized Flux Distribution Heatmap](https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/EDA/01.2-flux_distribution_by_wavelength.jpg)
+![Planet-Standardized Flux Distribution Heatmap](https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/EDA/01.2-flux_distribution_by_wavelength.jpg)
 
 This heatmap shows the distribution of planet-standardized flux values across wavelengths. Each planet's spectrum has been standardized using its own mean and standard deviation, revealing the underlying spectral patterns independent of individual planet brightness levels. The x-axis shows wavelength indices, while the y-axis represents standardized flux values (Z-scores).
 
