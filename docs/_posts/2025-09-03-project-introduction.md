@@ -3,7 +3,7 @@ layout: post
 title: "Project Introduction: Ariel Data Challenge 2025"
 ---
 
-Welcome to my exploration of the [Ariel Data Challenge 2025](https://www.kaggle.com/competitions/ariel-data-challenge-2025)! This Kaggle competition presents a fascinating challenge: extracting planetary atmospheric spectra from simulated space telescope observations.
+Welcome to my exploration of the [Ariel Data Challenge 2025](https://www.kaggle.com/competitions/ariel-data-challenge-2025)! This Kaggle competition presents a fascinating problem: extracting planetary atmospheric spectra from simulated space telescope observations.
 
 ## The Challenge
 
@@ -13,13 +13,15 @@ The Ariel space mission, scheduled to launch in 2029, will study the atmospheres
 
 I've started with an exploratory data analysis of the ground truth spectra to understand the dataset structure and characteristics. One of the key insights comes from examining how flux values are distributed across different wavelengths.
 
-![Planet-Standardized Flux Distribution Heatmap](../figures/EDA/01.2-flux_distribution_by_wavelength.jpg)
+<div align="center">
+![Planet-Standardized Flux Distribution Heatmap](https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/EDA/01.2-flux_distribution_by_wavelength.jpg)
+</div>
 
 This heatmap shows the distribution of planet-standardized flux values across wavelengths. Each planet's spectrum has been standardized using its own mean and standard deviation, revealing the underlying spectral patterns independent of individual planet brightness levels. The x-axis shows wavelength indices, while the y-axis represents standardized flux values (Z-scores).
 
-Taking the analysis further, I also explored how different planets cluster based on their spectral similarities:
-
-![Hierarchically Clustered Spectra](../figures/EDA/01.2-hierarchical_clustered_spectra.jpg)
+<div align="center">
+![Hierarchically Clustered Spectra](https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/EDA/01.2-hierarchical_clustered_spectra.jpg)
+</div>
 
 This visualization shows all 1100 planets ordered by hierarchical clustering based on their standardized spectral signatures. Each row represents a planet, and each column represents a wavelength. The planets have been grouped by spectral similarity using Ward linkage clustering, revealing distinct groups with similar atmospheric characteristics.
 
