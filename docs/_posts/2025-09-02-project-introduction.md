@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Project Introduction: Ariel Data Challenge 2025"
+title: "Project Introduction & Initial EDA"
 ---
 
 Welcome to my exploration of the [Ariel Data Challenge 2025](https://www.kaggle.com/competitions/ariel-data-challenge-2025)! This Kaggle competition presents a fascinating problem: extracting planetary atmospheric spectra from simulated space telescope observations.
