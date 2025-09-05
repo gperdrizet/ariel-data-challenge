@@ -4,7 +4,7 @@ author:
   email: george@perdrizet.org
 
 description: >
-  Blog my progress toward a solution for the NeurIPs 2025 Ariel Data Challenge on Kaggle. Site hosted from the project repository via GitHub Pages and Jekyll.
+  Solution progress blog for the NeurIPs 2025 Ariel Data Challenge on Kaggle. Site hosted from the project repository via GitHub Pages and Jekyll.
 
 remote_theme: "jekyll/minima@1e8a445"
 
