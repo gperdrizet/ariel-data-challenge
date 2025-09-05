@@ -1,0 +1,8 @@
+astropy
+build
+coverage
+flake8
+hatchling
+numpy
+pandas
+twine
