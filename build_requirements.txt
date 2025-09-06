@@ -1,0 +1,9 @@
+astropy
+build
+coverage
+flake8
+hatchling
+numpy
+pandas
+pyarrow
+twine
