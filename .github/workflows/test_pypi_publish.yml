@@ -6,17 +6,17 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: PyPI release
+name: Test PyPI release
 
 on:
-  release:
-    types: [published]
+  pull_request:
+    branches: [ "main" ]
 
 permissions:
   contents: read
 
 jobs:
-  release-build:
+  test-release-build:
     runs-on: ubuntu-latest
 
     steps:
@@ -46,7 +46,7 @@ jobs:
           name: release-dists
           path: dist/
 
-  pypi-publish:
+  test-pypi-publish:
     runs-on: ubuntu-latest
     needs:
       - release-build
