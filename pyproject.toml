@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "signal_correction"
+version = "1.0-alpha0"
+authors = [
+  { name="George Perdrizet", email="george@perdrizet.org" },
+]
+description = "Signal correction module for Ariel Data Challenge 2025."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy",
+  "astropy"
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "GPL-3.0-or-later"
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+Homepage = "https://github.com/gperdrizet/ariel-data-challenge"
+Issues = "https://github.com/gperdrizet/ariel-data-challenge/issues"
