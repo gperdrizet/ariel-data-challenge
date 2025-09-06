@@ -9,8 +9,8 @@
 name: Test PyPI release
 
 on:
-  release:
-    types: [published]
+  pull_request:
+    branches: [ "main" ]
 
 permissions:
   contents: read
