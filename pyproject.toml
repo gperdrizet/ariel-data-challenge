@@ -3,14 +3,14 @@ requires = ["hatchling >= 1.26"]
 build-backend = "hatchling.build"
 
 [project]
-name = "signal-correction"
-version = "1.0-alpha.5"
+name = "ariel-data-challenge"
+version = "1.0-alpha.6"
 authors = [
   { name="George Perdrizet", email="george@perdrizet.org" },
 ]
 description = "Signal correction module for Ariel Data Challenge 2025."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.8"
 dependencies = [
   "numpy",
   "astropy"
