@@ -5,7 +5,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from signal_correction.signal_correction import SignalCorrection
+from ariel_data_preprocessing.signal_correction import SignalCorrection
 
 class TestSignalCorrection(unittest.TestCase):
 
