@@ -58,7 +58,7 @@ class SignalCorrection:
         self.n_cpus = n_cpus
 
 
-    def _ADC_convert(self, signal):
+    def _ADC_convert(self, signal, gain, offset):
         '''
         Step 1: Convert raw detector counts to physical units.
         
@@ -72,11 +72,11 @@ class SignalCorrection:
             np.ndarray: ADC-corrected signal
         '''
         signal = signal.astype(np.float64)
-        signal /= self.gain  # Apply gain correction
-        signal += self.offset  # Apply offset correction
+        signal /= gain    # Apply gain correction
+        signal += offset  # Apply offset correction
 
         return signal
-    
+
 
     def _mask_hot_dead(self, signal, dead, dark):
         '''
@@ -179,7 +179,8 @@ class SignalCorrection:
         cds = signal[1::2,:,:] - signal[::2,:,:]
 
         return cds
-    
+
+
     def _correct_flat_field(self, signal, flat, dead):
         '''
         Step 6: Apply flat field correction.
@@ -196,6 +197,7 @@ class SignalCorrection:
             np.ndarray: Flat field corrected signal
         '''
         # Transpose flat field to match signal orientation
+        signal = signal.transpose(0, 2, 1)
         flat = flat.transpose(1, 0)
         dead = dead.transpose(1, 0)
         
@@ -206,4 +208,4 @@ class SignalCorrection:
         # Apply flat field correction
         signal = signal / flat
 
-        return signal
+        return signal.transpose(0, 2, 1)
