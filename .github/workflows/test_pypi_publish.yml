@@ -29,7 +29,6 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
           pip install -r build_requirements.txt
 
       - name: Build release distributions
@@ -38,7 +37,7 @@ jobs:
 
       - name: Test with unittest
         run: |
-          python -m unittest tests/test_signal_correction.py
+          python -m unittest tests/test_preprocessing.py
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
@@ -57,13 +56,13 @@ jobs:
     # Dedicated environments with protections for publishing are strongly recommended.
     # For more information, see: https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#deployment-protection-rules
     environment:
-      name: pypi
+      name: testpypi
       # OPTIONAL: uncomment and update to include your PyPI project URL in the deployment status:
       # url: https://pypi.org/p/YOURPROJECT
       #
       # ALTERNATIVE: if your GitHub Release name is the PyPI project version string
       # ALTERNATIVE: exactly, uncomment the following line instead:
-      url: https://pypi.org/project/${{ github.event.release.name }}
+      url: https://test.pypi.org/legacy/project/${{ github.event.release.name }}
 
     steps:
       - name: Retrieve release distributions
@@ -72,7 +71,7 @@ jobs:
           name: release-dists
           path: dist/
 
-      - name: Publish release distributions to PyPI
+      - name: Publish release distributions to test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
