@@ -3,8 +3,8 @@ requires = ["hatchling >= 1.26"]
 build-backend = "hatchling.build"
 
 [project]
-name = "signal_correction"
-version = "1.0-alpha0"
+name = "signal-correction"
+version = "1.0-alpha1"
 authors = [
   { name="George Perdrizet", email="george@perdrizet.org" },
 ]
@@ -21,6 +21,10 @@ classifiers = [
 ]
 license = "GPL-3.0-or-later"
 license-files = ["LICEN[CS]E*"]
+
+[tool.setuptools.packages.find]
+include = ["signal_correction"]
+exclude = ["figures", "tests", "notebooks", ".github", "docs", "requirements.txt", "configuration.py"]
 
 [project.urls]
 Homepage = "https://github.com/gperdrizet/ariel-data-challenge"
