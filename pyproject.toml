@@ -9,7 +9,7 @@ authors = [
   { name="George Perdrizet", email="george@perdrizet.org" },
 ]
 description = "Signal correction module for Ariel Data Challenge 2025."
-readme = "README.md"
+readme = "ariel_data_preprocessing/README.md"
 requires-python = ">=3.8"
 dependencies = [
   "numpy",
