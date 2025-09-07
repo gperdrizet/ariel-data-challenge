@@ -55,19 +55,10 @@ jobs:
       - test-release-build
 
     permissions:
-      # IMPORTANT: this permission is mandatory for trusted publishing
       id-token: write
 
-    # Dedicated environments with protections for publishing are strongly recommended.
     environment:
       name: testpypi
-
-      # OPTIONAL: uncomment and update to include your PyPI project URL in the deployment status:
-      url: https://test.pypi.org/p/ariel-data-preprocessing
-
-      # ALTERNATIVE: if your GitHub Release name is the PyPI project version string
-      # ALTERNATIVE: exactly, uncomment the following line instead:
-      # url: https://test.pypi.org/legacy/project/${{ github.event.release.name }}
 
     steps:
       - name: Retrieve release distributions
@@ -79,4 +70,4 @@ jobs:
       - name: Publish release distributions to test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: dist/
+          repository-url: https://test.pypi.org/legacy/
