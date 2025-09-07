@@ -36,7 +36,7 @@ jobs:
     needs: check-current-branch
 
     # only run if tag is present on branch 'main'
-    if: contains(${{ needs.check.outputs.branch }}, 'main')
+    if: contains(${{ needs.check-current-branch.outputs.branch }}, 'main')
 
     steps:
       - name: Checkout code
