@@ -6,20 +6,21 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Test PyPI release
+name: TestPyPI release
 
 on:
   push:
     tags:
       # Only run on release candidate tags
       # Examples: v1.0.0-alpha.10-rc1
-      - 'v[0-9]+.[0-9]+*[0-9]-rc[0-9]'
+      - '[0-9]+.[0-9]+rc[0-9]'
 
 permissions:
   contents: read
 
 jobs:
-  test-release-build:
+  build-test-release:
+    name: Build release candidate distribution
     runs-on: ubuntu-latest
 
     steps:
@@ -48,26 +49,18 @@ jobs:
           name: release-dists
           path: dist/
 
-  test-pypi-publish:
+  testpypi-publish:
+    name: Publish release candidate to TestPyPI
     runs-on: ubuntu-latest
     
     needs:
-      - test-release-build
+      - build-test-release
 
     permissions:
-      # IMPORTANT: this permission is mandatory for trusted publishing
       id-token: write
 
-    # Dedicated environments with protections for publishing are strongly recommended.
     environment:
       name: testpypi
-
-      # OPTIONAL: uncomment and update to include your PyPI project URL in the deployment status:
-      url: https://test.pypi.org/p/ariel-data-preprocessing
-
-      # ALTERNATIVE: if your GitHub Release name is the PyPI project version string
-      # ALTERNATIVE: exactly, uncomment the following line instead:
-      # url: https://test.pypi.org/legacy/project/${{ github.event.release.name }}
 
     steps:
       - name: Retrieve release distributions
@@ -79,4 +72,4 @@ jobs:
       - name: Publish release distributions to test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: dist/
+          repository-url: https://test.pypi.org/legacy/
