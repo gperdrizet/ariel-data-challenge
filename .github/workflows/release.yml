@@ -39,27 +39,26 @@ jobs:
     # Wait for check step to finish
     needs: check-current-branch
 
-    # only run if tag is present on branch 'main'
-    if: contains(${{ needs.check-current-branch.outputs.branch }}, 'main')
-
     steps:
       - name: Checkout code
+        # only run if tag is present on branch 'main'
+        if: contains(${{ needs.check-current-branch.outputs.branch }}, 'main')
         uses: actions/checkout@v2
+
       - name: Create release
         id: create_release
+        if: contains(${{ needs.check-current-branch.outputs.branch }}, 'main')
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
-          body: |
-            Changes in this Release
-            - First Change
-            - Second Change
-          draft: true
+          draft: false
           prerelease: true
+
       - name: Upload release asset
+        if: contains(${{ needs.check-current-branch.outputs.branch }}, 'main')
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -68,7 +67,9 @@ jobs:
           asset_path: ./path/to/asset.zip
           asset_name: asset.zip
           asset_content_type: application/zip
+
       - name: Publish release
+        if: contains(${{ needs.check-current-branch.outputs.branch }}, 'main')
         uses: StuYarrow/publish-release@v1.1.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
