@@ -1,6 +1,7 @@
 # Ariel Data Challenge
-[![Python CI](https://github.com/gperdrizet/ariel-data-challenge/actions/workflows/python_ci.yml/badge.svg)](https://github.com/gperdrizet/ariel-data-challenge/actions/workflows/python_ci.yml)
-[![PyPI release](https://github.com/gperdrizet/ariel-data-challenge/actions/workflows/publish_pypi.yml/badge.svg)](https://github.com/gperdrizet/ariel-data-challenge/actions/workflows/publish_pypi.yml)
+
+[![Unittest](https://github.com/gperdrizet/ariel-data-challenge/actions/workflows/unittest.yml/badge.svg)](https://github.com/gperdrizet/ariel-data-challenge/actions/workflows/unittest.yml)
+[![PyPI release](https://github.com/gperdrizet/ariel-data-challenge/actions/workflows/pypi_release.yml/badge.svg)](https://github.com/gperdrizet/ariel-data-challenge/actions/workflows/pypi_release.yml)
 [![pages-build-deployment](https://github.com/gperdrizet/ariel-data-challenge/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/gperdrizet/ariel-data-challenge/actions/workflows/pages/pages-build-deployment)
 
 - [Project progress blog](https://gperdrizet.github.io/ariel-data-challenge/)

@@ -1,5 +1,8 @@
 # Ariel Data Preprocessing
 
+[![PyPI release](https://github.com/gperdrizet/ariel-data-challenge/actions/workflows/pypi_release.yml/badge.svg)](https://github.com/gperdrizet/ariel-data-challenge/actions/workflows/pypi_release.yml)
+[![Unittest](https://github.com/gperdrizet/ariel-data-challenge/actions/workflows/unittest.yml/badge.svg)](https://github.com/gperdrizet/ariel-data-challenge/actions/workflows/unittest.yml)
+
 This module contains the FGS1 and AIRS-CH0 signal data preprocessing tools.
 
 ## Submodules
