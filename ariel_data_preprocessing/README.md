@@ -23,10 +23,27 @@ from ariel-data-preprocessing.signal_correction import SignalCorrection
 signal_correction = SignalCorrection(
     input_data_path='data/raw',
     output_data_path='data/corrected',
-    gain=0.4369,
-    offset=-1000.0,
-    n_cpus=16
+    n_planets=10
 )
 
 signal_correction.run()
+```
+
+The signal preprocessing pipeline will write the corrected frames as an hdf5 archive called `train.h5` with the following structure:
+
+```text
+├── planet_1
+|   ├── AIRS-CH0_signal
+│   └── FGS1_signal
+│
+├── planet_1
+|   ├── AIRS-CH0_signal
+│   └── FGS1_signal
+│
+.
+.
+.
+└── planet_n
+    ├── AIRS-CH0_signal
+    └── FGS1_signal
 ```
