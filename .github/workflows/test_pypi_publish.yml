@@ -1,5 +1,5 @@
-# This workflow will upload a Python Package to PyPI when a release is created
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#publishing-to-package-registries
+# This workflow will test building and uploading a package to Test PyPI
+# When a new tag is pushed to the dev branch
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
@@ -9,8 +9,11 @@
 name: Test PyPI release
 
 on:
-  pull_request:
-    branches: [ "main" ]
+  push:
+    tags:
+      # Only run on release candidate tags
+      # Examples: v1.0.0-alpha.10-rc1
+      - 'v[0-9]+.[0-9]+.[0-9]+*-rc[0-9]'
 
 permissions:
   contents: read
@@ -47,22 +50,24 @@ jobs:
 
   test-pypi-publish:
     runs-on: ubuntu-latest
+    
     needs:
-      - release-build
+      - test-release-build
+
     permissions:
       # IMPORTANT: this permission is mandatory for trusted publishing
       id-token: write
 
     # Dedicated environments with protections for publishing are strongly recommended.
-    # For more information, see: https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#deployment-protection-rules
     environment:
       name: testpypi
+
       # OPTIONAL: uncomment and update to include your PyPI project URL in the deployment status:
-      # url: https://pypi.org/p/YOURPROJECT
-      #
+      url: https://test.pypi.org/p/ariel-data-preprocessing
+
       # ALTERNATIVE: if your GitHub Release name is the PyPI project version string
       # ALTERNATIVE: exactly, uncomment the following line instead:
-      url: https://test.pypi.org/legacy/project/${{ github.event.release.name }}
+      # url: https://test.pypi.org/legacy/project/${{ github.event.release.name }}
 
     steps:
       - name: Retrieve release distributions
