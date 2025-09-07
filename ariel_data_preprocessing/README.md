@@ -2,7 +2,7 @@
 
 This module contains the FGS1 and AIRS-CH0 signal data preprocessing tools.
 
-## Submodule
+## Submodules
 
 1. Signal correction (implemented)
 2. Data reduction (planned)
