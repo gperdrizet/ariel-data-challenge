@@ -20,23 +20,45 @@ class TestSignalCorrection(unittest.TestCase):
 
         cut_inf = 39
         cut_sup = 321
-    
-        # Load assets
+
+        # Load and prep signal data
+        self.fgs_signal = pd.read_parquet(
+            f'{planet_path}/FGS1_signal_0.parquet'
+        ).to_numpy().reshape(4, 32, 32)
+        self.airs_signal = pd.read_parquet(
+            f'{planet_path}/AIRS-CH0_signal_0.parquet'
+        ).to_numpy().reshape(4, 32, 356)[:, :, cut_inf:cut_sup]
+
+        # Load and prep calibration data
+        self.dead_fgs = pd.read_parquet(
+            f'{planet_path}/FGS1_calibration_0/dead.parquet'
+        ).values.astype(np.float64).reshape((32, 32))
+        self.dead_airs = pd.read_parquet(
+            f'{planet_path}/AIRS-CH0_calibration_0/dead.parquet'
+        ).values.astype(np.float64).reshape((32, 356))[:, cut_inf:cut_sup]
+
+        self.dark_fgs = pd.read_parquet(
+            f'{planet_path}/FGS1_calibration_0/dark.parquet'
+        ).values.astype(np.float64).reshape((32, 32))
+        self.dark_airs = pd.read_parquet(
+            f'{planet_path}/AIRS-CH0_calibration_0/dark.parquet'
+        ).values.astype(np.float64).reshape((32, 356))[:, cut_inf:cut_sup]
+
+        self.linear_corr_fgs = pd.read_parquet(
+            f'{planet_path}/FGS1_calibration_0/linear_corr.parquet'
+        ).values.astype(np.float64).reshape((6, 32, 32))
+        self.linear_corr_airs = pd.read_parquet(
+            f'{planet_path}/AIRS-CH0_calibration_0/linear_corr.parquet'
+        ).values.astype(np.float64).reshape((6, 32, 356))[:, :, cut_inf:cut_sup]
+
+        self.flat_fgs = pd.read_parquet(
+            f'{planet_path}/FGS1_calibration_0/flat.parquet'
+        ).values.astype(np.float64).reshape((32, 32))
+        self.flat_airs = pd.read_parquet(
+            f'{planet_path}/AIRS-CH0_calibration_0/flat.parquet'
+        ).values.astype(np.float64).reshape((32, 356))[:, cut_inf:cut_sup]
+
         self.axis_info = pd.read_parquet('tests/test_data/raw/axis_info.parquet')
-
-        self.fgs_signal = pd.read_parquet(f'{planet_path}/FGS1_signal_0.parquet').to_numpy().reshape(4, 32, 32)
-        self.airs_signal = pd.read_parquet(f'{planet_path}/AIRS-CH0_signal_0.parquet').to_numpy().reshape(4, 32, 356)[:, :, cut_inf:cut_sup]
-
-        self.dark_airs = pd.read_parquet(f'{planet_path}/AIRS-CH0_calibration_0/dark.parquet').values.astype(np.float64).reshape((32, 356))[:, cut_inf:cut_sup]
-        self.dead_airs = pd.read_parquet(f'{planet_path}/AIRS-CH0_calibration_0/dead.parquet').values.astype(np.float64).reshape((32, 356))[:, cut_inf:cut_sup]
-        self.dark_fgs = pd.read_parquet(f'{planet_path}/FGS1_calibration_0/dark.parquet').values.astype(np.float64).reshape((32, 32))
-        self.dead_fgs = pd.read_parquet(f'{planet_path}/FGS1_calibration_0/dead.parquet').values.astype(np.float64).reshape((32, 32))
-
-        self.linear_corr_airs = pd.read_parquet(f'{planet_path}/AIRS-CH0_calibration_0/linear_corr.parquet').values.astype(np.float64).reshape((6, 32, 356))[:, :, cut_inf:cut_sup]
-        self.linear_corr_fgs = pd.read_parquet(f'{planet_path}/FGS1_calibration_0/linear_corr.parquet').values.astype(np.float64).reshape((6, 32, 32))
-
-        self.flat_airs = pd.read_parquet(f'{planet_path}/AIRS-CH0_calibration_0/flat.parquet').values.astype(np.float64).reshape((32, 356))[:, cut_inf:cut_sup]
-        self.flat_fgs = pd.read_parquet(f'{planet_path}/FGS1_calibration_0/flat.parquet').values.astype(np.float64).reshape((32, 32))
 
         self.dt_airs = self.axis_info['AIRS-CH0-integration_time'].dropna().values[:4]
         self.dt_airs[1::2] += 0.1 # Why are we adding here - I don't think that is right...
