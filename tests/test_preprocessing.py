@@ -18,6 +18,8 @@ class TestSignalCorrection(unittest.TestCase):
         self.planet = '342072318'
         planet_path = f'{self.input_data_path}/train/{self.planet}'
 
+        airs_frames = 4
+        fgs_frames = 4
         cut_inf = 39
         cut_sup = 321
 
@@ -68,7 +70,9 @@ class TestSignalCorrection(unittest.TestCase):
 
         self.signal_correction = SignalCorrection(
             input_data_path=self.input_data_path,
-            output_data_path=self.output_data_path
+            output_data_path=self.output_data_path,
+            airs_frames=airs_frames,
+            fgs_frames=fgs_frames,
         )
 
     def test_signal_correction(self):

@@ -41,6 +41,8 @@ class SignalCorrection:
             dark_subtraction: bool = True,
             cds_subtraction: bool = True,
             flat_field_correction: bool = True,
+            fgs_frames: int = 135000,
+            airs_frames: int = 11250,
             cut_inf: int = 39,
             cut_sup: int = 321,
             gain: float = 0.4369,
@@ -73,6 +75,8 @@ class SignalCorrection:
         self.dark_subtraction = dark_subtraction
         self.cds_subtraction = cds_subtraction
         self.flat_field_correction = flat_field_correction
+        self.fgs_frames = fgs_frames
+        self.airs_frames = airs_frames
         self.gain = gain
         self.offset = offset
         self.cut_inf = cut_inf
@@ -98,8 +102,6 @@ class SignalCorrection:
         if self.n_planets != -1:
             self.planet_list = self.planet_list[:self.n_planets]
 
-        print('SignalCorrection initialized.')
-
 
     def run(self):
         '''
@@ -118,17 +120,18 @@ class SignalCorrection:
             # Load and prep the raw data
             fgs_signal = pd.read_parquet(
                 f'{planet_path}/FGS1_signal_0.parquet'
-            ).to_numpy().reshape(4, 32, 32)
-            
+            ).to_numpy().reshape(self.fgs_frames, 32, 32)
+
             airs_signal = pd.read_parquet(
                 f'{planet_path}/AIRS-CH0_signal_0.parquet'
-            ).to_numpy().reshape(4, 32, 356)[:, :, self.cut_inf:self.cut_sup]
+            ).to_numpy().reshape(self.airs_frames, 32, 356)[:, :, self.cut_inf:self.cut_sup]
 
             # Load and prep calibration data
             calibration_data = CalibrationData(
                 input_data_path=self.input_data_path,
                 planet_path=planet_path,
-                fgs_signal=fgs_signal,
+                fgs_frames=self.fgs_frames,
+                airs_frames=self.airs_frames,
                 cut_inf=self.cut_inf,
                 cut_sup=self.cut_sup
             )
@@ -421,7 +424,8 @@ class CalibrationData:
             self,
             input_data_path: str,
             planet_path: str,
-            fgs_signal: np.ndarray,
+            airs_frames: int,
+            fgs_frames: int,
             cut_inf: int,
             cut_sup: int
         ):
@@ -465,8 +469,8 @@ class CalibrationData:
 
         self.axis_info = pd.read_parquet(f'{input_data_path}/axis_info.parquet')
 
-        self.dt_airs = self.axis_info['AIRS-CH0-integration_time'].dropna().values[:4]
+        self.dt_airs = self.axis_info['AIRS-CH0-integration_time'].dropna().values[:airs_frames]
         self.dt_airs[1::2] += 0.1 # Why are we adding here - I don't think that is right...
 
-        self.dt_fgs = np.ones(len(fgs_signal)) * 0.1
+        self.dt_fgs = np.ones(fgs_frames) * 0.1
         self.dt_fgs[1::2] += 0.1 # This one looks more correct
