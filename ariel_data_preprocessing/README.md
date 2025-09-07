@@ -13,7 +13,7 @@ This module contains the FGS1 and AIRS-CH0 signal data preprocessing tools.
 
 ## 1. Signal correction
 
-Implements the six signal correction steps outline in the [Calibrating and Binning Ariel Data](https://www.kaggle.com/code/gordonyip/calibrating-and-binning-ariel-data) shared by the contest organizers.
+Implements the six signal correction steps outline in the [Calibrating and Binning Ariel Data](https://www.kaggle.com/code/gordonyip/calibrating-and-binning-ariel-data) notebook shared by the contest organizers.
 
 Example use:
 
