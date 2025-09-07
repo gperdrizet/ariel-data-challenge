@@ -6,33 +6,45 @@ on:
       - '[0-9]+.[0-9]+a[0-9]'
 
 jobs:
-  build-release:
-    name: Build release distribution
+  check-branch:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Exit if not on production branch
+        if: endsWith(github.event.base_ref, 'production') == false
+        run: exit -1
 
-      - uses: actions/setup-python@v5
+  build:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         with:
-          python-version: "3.8"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r build_requirements.txt
-
-      - name: Build distributions
-        run: |
-          python -m build
-
-      - name: Test with unittest
-        run: |
-          python -m unittest tests/test_preprocessing.py
-
-      - name: Upload distributions
-        uses: actions/upload-artifact@v4
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Changes in this Release
+            - First Change
+            - Second Change
+          draft: true
+          prerelease: true
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: release-dists
-          path: dist/
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./path/to/asset.zip
+          asset_name: asset.zip
+          asset_content_type: application/zip
+      - name: Publish release
+        uses: StuYarrow/publish-release@v1.1.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          id: ${{ steps.create_release.outputs.id }}
