@@ -6,11 +6,16 @@ correlated double sampling (CDS), and flat field correction.
 '''
 
 # Standard library imports
+from fileinput import filename
 import itertools
+import os
 
 # Third party imports
-from astropy.stats import sigma_clip
+import h5py
 import numpy as np
+import pandas as pd
+
+from astropy.stats import sigma_clip
 
 
 class SignalCorrection:
@@ -30,9 +35,18 @@ class SignalCorrection:
             self,
             input_data_path: str = None,
             output_data_path: str = None,
+            adc_conversion: bool = True,
+            masking: bool = True,
+            linearity_correction: bool = True,
+            dark_subtraction: bool = True,
+            cds_subtraction: bool = True,
+            flat_field_correction: bool = True,
+            cut_inf: int = 39,
+            cut_sup: int = 321,
             gain: float = 0.4369,
             offset: float = -1000.0,
             n_cpus: int = 1,
+            n_planets: int = -1
     ):
         '''
         Initialize the SignalCorrection class.
@@ -53,12 +67,147 @@ class SignalCorrection:
         
         self.input_data_path = input_data_path
         self.output_data_path = output_data_path
+        self.adc_conversion = adc_conversion
+        self.masking = masking
+        self.linearity_correction = linearity_correction
+        self.dark_subtraction = dark_subtraction
+        self.cds_subtraction = cds_subtraction
+        self.flat_field_correction = flat_field_correction
         self.gain = gain
         self.offset = offset
+        self.cut_inf = cut_inf
+        self.cut_sup = cut_sup
         self.n_cpus = n_cpus
+        self.n_planets = n_planets
+
+        # Make sure output directory exists
+        os.makedirs(self.output_data_path, exist_ok=True)
+
+        # Remove hdf5 files from previous runs
+        filename = (f'{self.output_data_path}/train.h5')
+        
+        try:
+            os.remove(filename)
+
+        except OSError:
+            pass
+
+        # Get planet list from input data
+        self.planet_list = self._get_planet_list()
+
+        if self.n_planets != -1:
+            self.planet_list = self.planet_list[:self.n_planets]
+
+        print('SignalCorrection initialized.')
 
 
-    def _ADC_convert(self, signal, gain, offset):
+    def run(self):
+        '''
+        Run the complete signal correction pipeline.
+        
+        This method orchestrates the entire preprocessing sequence,
+        applying each correction step in order.
+        '''
+
+        
+        for planet in self.planet_list:
+
+            # Get path to this planet's data
+            planet_path = f'{self.input_data_path}/train/{planet}'
+
+            # Load and prep the raw data
+            fgs_signal = pd.read_parquet(
+                f'{planet_path}/FGS1_signal_0.parquet'
+            ).to_numpy().reshape(4, 32, 32)
+            
+            airs_signal = pd.read_parquet(
+                f'{planet_path}/AIRS-CH0_signal_0.parquet'
+            ).to_numpy().reshape(4, 32, 356)[:, :, self.cut_inf:self.cut_sup]
+
+            # Load and prep calibration data
+            calibration_data = CalibrationData(
+                input_data_path=self.input_data_path,
+                planet_path=planet_path,
+                fgs_signal=fgs_signal,
+                cut_inf=self.cut_inf,
+                cut_sup=self.cut_sup
+            )
+
+            # Step 1: ADC conversion
+            if self.adc_conversion:
+                airs_signal = self._ADC_convert(airs_signal)
+                fgs_signal = self._ADC_convert(fgs_signal)
+
+            # Step 2: Mask hot/dead pixels
+            if self.masking:
+                airs_signal = self._mask_hot_dead(
+                    airs_signal,
+                    calibration_data.dead_airs,
+                    calibration_data.dark_airs
+                )
+
+                fgs_signal = self._mask_hot_dead(
+                    fgs_signal,
+                    calibration_data.dead_fgs,
+                    calibration_data.dark_fgs
+                )
+
+            # Step 3: Linearity correction
+            if self.linearity_correction:
+                airs_signal = self._apply_linear_corr(
+                    calibration_data.linear_corr_airs,
+                    airs_signal
+                )
+
+                fgs_signal = self._apply_linear_corr(
+                    calibration_data.linear_corr_fgs,
+                    fgs_signal
+                )
+
+            # Step 4: Dark current subtraction
+            if self.dark_subtraction:
+                airs_signal = self._clean_dark(
+                    airs_signal,
+                    calibration_data.dead_airs,
+                    calibration_data.dark_airs,
+                    calibration_data.dt_airs
+                )
+
+                fgs_signal = self._clean_dark(
+                    fgs_signal,
+                    calibration_data.dead_fgs,
+                    calibration_data.dark_fgs,
+                    calibration_data.dt_fgs
+                )
+
+            # Step 5: Correlated Double Sampling (CDS)
+            if self.cds_subtraction:
+                airs_signal = self._get_cds(airs_signal)
+                fgs_signal = self._get_cds(fgs_signal) 
+
+            # Step 6: Flat field correction
+            if self.flat_field_correction:
+                airs_signal = self._correct_flat_field(
+                    airs_signal,
+                    calibration_data.flat_airs,
+                    calibration_data.dead_airs
+                )
+
+                fgs_signal = self._correct_flat_field(
+                    fgs_signal,
+                    calibration_data.flat_fgs,
+                    calibration_data.dead_fgs
+                )
+
+            # Save the corrected data
+            self._save_corrected_data(
+                planet,
+                airs_signal,
+                fgs_signal
+            )
+
+
+    def _ADC_convert(self, signal):
         '''
         Step 1: Convert raw detector counts to physical units.
         
@@ -72,8 +221,8 @@ class SignalCorrection:
             np.ndarray: ADC-corrected signal
         '''
         signal = signal.astype(np.float64)
-        signal /= gain    # Apply gain correction
-        signal += offset  # Apply offset correction
+        signal /= self.gain    # Apply gain correction
+        signal += self.offset  # Apply offset correction
 
         return signal
 
@@ -152,6 +301,7 @@ class SignalCorrection:
         Returns:
             np.ndarray: Dark-corrected signal
         '''
+
         # Mask dead pixels in dark frame
         dark = np.ma.masked_where(dead, dark)
         dark = np.tile(dark, (signal.shape[0], 1, 1))
@@ -209,3 +359,114 @@ class SignalCorrection:
         signal = signal / flat
 
         return signal.transpose(0, 2, 1)
+
+
+    def _get_planet_list(self):
+        '''
+        Retrieve list of unique planet IDs from input data.
+        
+        Scans the input data directory to identify all unique
+        planet identifiers for processing.
+        
+        Returns:
+            list: List of unique planet IDs
+        '''
+
+        planets = list(os.listdir(f'{self.input_data_path}/train'))
+
+        return [planet_path.split('/')[-1] for planet_path in planets]
+
+
+    def _save_corrected_data(self, planet, airs_signal, fgs_signal):
+        '''
+        Save corrected data to output directory.
+        
+        Writes the processed AIRS-CH0 and FGS1 signals to
+        parquet files in the specified output path.
+        
+        Args:
+            planet (str): Planet ID
+            airs_signal (np.ndarray): Corrected AIRS-CH0 signal
+            fgs_signal (np.ndarray): Corrected FGS1 signal
+        '''
+        
+        # File path for hdf5 output
+        output_file = (f'{self.output_data_path}/train.h5')
+
+        with h5py.File(output_file, 'a') as hdf:
+
+            # Create groups for this planet if not existing
+            planet_group = hdf.require_group(planet)
+
+            # Create datasets for AIRS-CH0 and FGS1 signals
+            _ = planet_group.create_dataset('AIRS-CH0_signal', data=airs_signal)
+            _ = planet_group.create_dataset('FGS1_signal', data=fgs_signal)
+
+            # Save the corrected signals
+            planet_group['AIRS-CH0_signal'][:] = airs_signal
+            planet_group['FGS1_signal'][:] = fgs_signal
+
+        return True
+
+
+class CalibrationData:
+    '''
+    Class to load and store calibration data for signal correction.
+    
+    This class reads all necessary calibration files for a given planet
+    and stores them as attributes for use in the SignalCorrection pipeline.
+    '''
+
+    def __init__(
+            self,
+            input_data_path: str,
+            planet_path: str,
+            fgs_signal: np.ndarray,
+            cut_inf: int,
+            cut_sup: int
+        ):
+        '''
+        Initialize CalibrationData by loading calibration files.
+        
+        Args:
+            planet_path (str): Path to the planet's data directory
+            cut_inf (int): Lower wavelength cut index for AIRS-CH0
+            cut_sup (int): Upper wavelength cut index for AIRS-CH0
+        '''
+    
+        # Load and prep calibration data
+        self.dark_airs = pd.read_parquet(
+            f'{planet_path}/AIRS-CH0_calibration_0/dark.parquet'
+        ).values.astype(np.float64).reshape((32, 356))[:, cut_inf:cut_sup]
+        self.dead_airs = pd.read_parquet(
+            f'{planet_path}/AIRS-CH0_calibration_0/dead.parquet'
+        ).values.astype(np.float64).reshape((32, 356))[:, cut_inf:cut_sup]
+
+        self.dark_fgs = pd.read_parquet(
+            f'{planet_path}/FGS1_calibration_0/dark.parquet'
+        ).values.astype(np.float64).reshape((32, 32))
+        self.dead_fgs = pd.read_parquet(
+            f'{planet_path}/FGS1_calibration_0/dead.parquet'
+        ).values.astype(np.float64).reshape((32, 32))
+
+        self.linear_corr_airs = pd.read_parquet(
+            f'{planet_path}/AIRS-CH0_calibration_0/linear_corr.parquet'
+        ).values.astype(np.float64).reshape((6, 32, 356))[:, :, cut_inf:cut_sup]
+        self.linear_corr_fgs = pd.read_parquet(
+            f'{planet_path}/FGS1_calibration_0/linear_corr.parquet'
+        ).values.astype(np.float64).reshape((6, 32, 32))
+
+        self.flat_airs = pd.read_parquet(
+            f'{planet_path}/AIRS-CH0_calibration_0/flat.parquet'
+        ).values.astype(np.float64).reshape((32, 356))[:, cut_inf:cut_sup]
+        self.flat_fgs = pd.read_parquet(
+            f'{planet_path}/FGS1_calibration_0/flat.parquet'
+        ).values.astype(np.float64).reshape((32, 32))
+
+        self.axis_info = pd.read_parquet(f'{input_data_path}/axis_info.parquet')
+
+        self.dt_airs = self.axis_info['AIRS-CH0-integration_time'].dropna().values[:4]
+        self.dt_airs[1::2] += 0.1 # Why are we adding here - I don't think that is right...
+
+        self.dt_fgs = np.ones(len(fgs_signal)) * 0.1
+        self.dt_fgs[1::2] += 0.1 # This one looks more correct

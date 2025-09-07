@@ -1,6 +1,7 @@
 astropy
 build
 hatchling
+h5py
 numpy
 pandas
 pyarrow
