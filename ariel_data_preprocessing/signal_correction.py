@@ -10,6 +10,7 @@ import itertools
 import os
 
 # Third party imports
+import h5py
 import numpy as np
 import pandas as pd
 
@@ -44,6 +45,7 @@ class SignalCorrection:
             gain: float = 0.4369,
             offset: float = -1000.0,
             n_cpus: int = 1,
+            n_planets: int = -1
     ):
         '''
         Initialize the SignalCorrection class.
@@ -75,9 +77,16 @@ class SignalCorrection:
         self.cut_inf = cut_inf
         self.cut_sup = cut_sup
         self.n_cpus = n_cpus
+        self.n_planets = n_planets
+
+        # Make sure output directory exists
+        os.makedirs(self.output_data_path, exist_ok=True)
 
         # Get planet list from input data
         self.planet_list = self._get_planet_list()
+
+        if self.n_planets != -1:
+            self.planet_list = self.planet_list[:self.n_planets]
 
         print('SignalCorrection initialized.')
 
@@ -89,6 +98,7 @@ class SignalCorrection:
         This method orchestrates the entire preprocessing sequence,
         applying each correction step in order.
         '''
+
         
         for planet in self.planet_list:
 
@@ -177,6 +187,13 @@ class SignalCorrection:
                     calibration_data.flat_fgs,
                     calibration_data.dead_fgs
                 )
+
+            # Save the corrected data
+            self._save_corrected_data(
+                planet,
+                airs_signal,
+                fgs_signal
+            )
 
 
     def _ADC_convert(self, signal):
@@ -346,6 +363,38 @@ class SignalCorrection:
         planets = list(os.listdir(f'{self.input_data_path}/train'))
 
         return [planet_path.split('/')[-1] for planet_path in planets]
+
+
+    def _save_corrected_data(self, planet, airs_signal, fgs_signal):
+        '''
+        Save corrected data to output directory.
+        
+        Writes the processed AIRS-CH0 and FGS1 signals to
+        parquet files in the specified output path.
+        
+        Args:
+            planet (str): Planet ID
+            airs_signal (np.ndarray): Corrected AIRS-CH0 signal
+            fgs_signal (np.ndarray): Corrected FGS1 signal
+        '''
+        
+        # File path for hdf5 output
+        output_file = (f'{self.output_data_path}/train.h5')
+
+        with h5py.File(output_file, 'a') as hdf:
+
+            # Create groups for this planet if not existing
+            planet_group = hdf.require_group(planet)
+
+            # Create datasets for AIRS-CH0 and FGS1 signals
+            _ = planet_group.create_dataset('AIRS-CH0_signal', data=airs_signal)
+            _ = planet_group.create_dataset('FGS1_signal', data=fgs_signal)
+
+            # Save the corrected signals
+            planet_group['AIRS-CH0_signal'][:] = airs_signal
+            planet_group['FGS1_signal'][:] = fgs_signal
+
+        return True
 
 
 class CalibrationData:
