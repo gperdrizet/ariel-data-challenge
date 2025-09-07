@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   build-test:
+    name: Build and test with Python 3.8
 
     runs-on: ubuntu-latest
 
