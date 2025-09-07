@@ -1,0 +1,38 @@
+name: Create GitHub Release
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+a[0-9]'
+
+jobs:
+  build-release:
+    name: Build release distribution
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r build_requirements.txt
+
+      - name: Build distributions
+        run: |
+          python -m build
+
+      - name: Test with unittest
+        run: |
+          python -m unittest tests/test_preprocessing.py
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
