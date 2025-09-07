@@ -39,7 +39,7 @@ jobs:
 
       - name: Test with unittest
         run: |
-          python -m unittest tests/test_signal_correction.py
+          python -m unittest tests/test_preprocessing.py
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
