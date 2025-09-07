@@ -4,7 +4,9 @@
 [![pages-build-deployment](https://github.com/gperdrizet/ariel-data-challenge/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/gperdrizet/ariel-data-challenge/actions/workflows/pages/pages-build-deployment)
 
 - [Project progress blog](https://gperdrizet.github.io/ariel-data-challenge/)
+- [Signal preprocessing package](https://pypi.org/project/ariel-data-preprocessing/)
 - [Kaggle competition page: Ariel Data Challenge 2025](https://www.kaggle.com/competitions/ariel-data-challenge-2025/overview)
+
 
 ## 1. Setup
 
@@ -19,6 +21,7 @@ Assumes the following base system configuration:
 - cuDNN 8.1
 - GCC 9.4.0
 
+
 ### 1.1. Virtual environment
 
 Create a Python 3.8 virtual environment:
@@ -26,6 +29,7 @@ Create a Python 3.8 virtual environment:
 ```bash
 python3.8 -m venv .venv
 ```
+
 
 ### 1.2. TensorFlow
 
@@ -56,6 +60,7 @@ You should see something like:
 [PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU'), PhysicalDevice(name='/physical_device:GPU:1', device_type='GPU'), PhysicalDevice(name='/physical_device:GPU:2', device_type='GPU')]
 ```
 
+
 ### 1.3. LightGBM
 
 Install LightGBM with CUDA support. For the `--config-settings` flag to work pip must be >= 23.1.
@@ -64,11 +69,13 @@ Install LightGBM with CUDA support. For the `--config-settings` flag to work pip
 pip install lightgbm --no-binary lightgbm --config-settings=cmake.define.USE_CUDA=ON
 ```
 
+
 ### 1.4. Other requirements
 
 ```bash
 pip install -r requirements.txt
 ```
+
 
 ### 1.5. Optuna RDB storage
 
@@ -100,6 +107,7 @@ Once run data is present, you can start the Optuna dashboard with:
 ```bash
 gunicorn -b YOUR_LISTEN_IP --workers 2 functions.optuna_dashboard:application
 ```
+
 
 ## 2. Data acquisition
 
