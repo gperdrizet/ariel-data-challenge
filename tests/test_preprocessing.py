@@ -7,19 +7,19 @@ import pandas as pd
 
 from ariel_data_preprocessing.signal_correction import SignalCorrection
 
+
 class TestSignalCorrection(unittest.TestCase):
 
     def setUp(self):
 
+        input_data_path = 'tests/test_data/raw'
+        output_data_path = 'tests/test_data/corrected'
+        planet = '342072318'
+        planet_path = f'{input_data_path}/train/{planet}'
+
         cut_inf = 39
         cut_sup = 321
-        
-        planet = '342072318'
-        planet_path = f'tests/test_data/raw/train/{planet}'
-
-        self.gain = 0.4369
-        self.offset = -1000.0
-
+    
         # Load assets
         self.axis_info = pd.read_parquet('tests/test_data/raw/axis_info.parquet')
 
@@ -44,26 +44,32 @@ class TestSignalCorrection(unittest.TestCase):
         self.dt_fgs[1::2] += 0.1 # This one looks more correct
 
         self.signal_correction = SignalCorrection(
-            input_data_path='tests/test_data/raw',
-            output_data_path='tests/test_data/corrected',
-            gain=self.gain,
-            offset=self.offset
+            input_data_path=input_data_path,
+            output_data_path=output_data_path
         )
+
+    def test_planet_list(self):
+        '''Test planet list extraction'''
+
+        planet_list = self.signal_correction._get_planet_list()
+
+        print(f'Planet list: {planet_list}')
+
+        self.assertTrue(isinstance(planet_list, list))
+        self.assertTrue(len(planet_list) > 0)
+        self.assertTrue(all(isinstance(p, str) for p in planet_list))
+        self.assertEqual(planet_list[0], '342072318')
 
 
     def test_adc_conversion(self):
         '''Test ADC conversion'''
 
         corrected_airs = self.signal_correction._ADC_convert(
-            self.airs_signal,
-            self.gain,
-            self.offset
+            self.airs_signal
         )
 
         corrected_fgs = self.signal_correction._ADC_convert(
-            self.fgs_signal,
-            self.gain,
-            self.offset
+            self.fgs_signal
         )
 
         self.assertTrue(corrected_airs.shape == self.airs_signal.shape)

@@ -7,6 +7,7 @@ correlated double sampling (CDS), and flat field correction.
 
 # Standard library imports
 import itertools
+import os
 
 # Third party imports
 from astropy.stats import sigma_clip
@@ -30,6 +31,12 @@ class SignalCorrection:
             self,
             input_data_path: str = None,
             output_data_path: str = None,
+            adc_conversion: bool = True,
+            masking: bool = True,
+            linearity_correction: bool = True,
+            dark_subtraction: bool = True,
+            cds_subtraction: bool = True,
+            flat_field_correction: bool = True,
             gain: float = 0.4369,
             offset: float = -1000.0,
             n_cpus: int = 1,
@@ -53,12 +60,48 @@ class SignalCorrection:
         
         self.input_data_path = input_data_path
         self.output_data_path = output_data_path
+        self.adc_conversion = adc_conversion
+        self.masking = masking
+        self.linearity_correction = linearity_correction
+        self.dark_subtraction = dark_subtraction
+        self.cds_subtraction = cds_subtraction
+        self.flat_field_correction = flat_field_correction
         self.gain = gain
         self.offset = offset
         self.n_cpus = n_cpus
 
+        # Get planet list from input data
+        # self.planet_list = self._get_planet_list()
+        print('SignalCorrection initialized.')
 
-    def _ADC_convert(self, signal, gain, offset):
+
+    def run(self):
+        '''
+        Run the complete signal correction pipeline.
+        
+        This method orchestrates the entire preprocessing sequence,
+        applying each correction step in order.
+        '''
+        pass
+
+
+    def _get_planet_list(self):
+        '''
+        Retrieve list of unique planet IDs from input data.
+        
+        Scans the input data directory to identify all unique
+        planet identifiers for processing.
+        
+        Returns:
+            list: List of unique planet IDs
+        '''
+
+        planets = list(os.listdir(f'{self.input_data_path}/train'))
+
+        return [planet_path.split('/')[-1] for planet_path in planets]
+
+
+    def _ADC_convert(self, signal):
         '''
         Step 1: Convert raw detector counts to physical units.
         
@@ -72,8 +115,8 @@ class SignalCorrection:
             np.ndarray: ADC-corrected signal
         '''
         signal = signal.astype(np.float64)
-        signal /= gain    # Apply gain correction
-        signal += offset  # Apply offset correction
+        signal /= self.gain    # Apply gain correction
+        signal += self.offset  # Apply offset correction
 
         return signal
 
