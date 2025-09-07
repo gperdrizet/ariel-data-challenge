@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ariel_data_preprocessing"
-version = "1.0a2"
+version = "1.0"
 authors = [
   { name="George Perdrizet", email="george@perdrizet.org" },
 ]
