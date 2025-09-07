@@ -14,6 +14,8 @@ DATA_DIRECTORY = './data'
 RAW_DATA_DIRECTORY = f'{DATA_DIRECTORY}/raw'
 METADATA_DIRECTORY = f'{DATA_DIRECTORY}/metadata'
 
+SAMPLE_PLANET = '342072318'
+
 FIGURES_DIRECTORY = './figures'
 
 #############################################################
