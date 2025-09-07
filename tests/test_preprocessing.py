@@ -4,6 +4,7 @@ import unittest
 
 import numpy as np
 import pandas as pd
+import h5py
 
 from ariel_data_preprocessing.signal_correction import SignalCorrection
 
@@ -12,10 +13,10 @@ class TestSignalCorrection(unittest.TestCase):
 
     def setUp(self):
 
-        input_data_path = 'tests/test_data/raw'
-        output_data_path = 'tests/test_data/corrected'
-        planet = '342072318'
-        planet_path = f'{input_data_path}/train/{planet}'
+        self.input_data_path = 'tests/test_data/raw'
+        self.output_data_path = 'tests/test_data/corrected'
+        self.planet = '342072318'
+        planet_path = f'{self.input_data_path}/train/{self.planet}'
 
         cut_inf = 39
         cut_sup = 321
@@ -44,16 +45,32 @@ class TestSignalCorrection(unittest.TestCase):
         self.dt_fgs[1::2] += 0.1 # This one looks more correct
 
         self.signal_correction = SignalCorrection(
-            input_data_path=input_data_path,
-            output_data_path=output_data_path
+            input_data_path=self.input_data_path,
+            output_data_path=self.output_data_path
         )
+
+    def test_signal_correction(self):
+        '''Test full signal correction pipeline'''
+
+        self.signal_correction.run()
+
+        with h5py.File(f'{self.output_data_path}/train.h5', 'r') as hdf:
+
+            self.assertEqual(len(hdf[self.planet]), 2)
+            self.assertTrue('AIRS-CH0_signal' in hdf[self.planet])
+            self.assertTrue('FGS1_signal' in hdf[self.planet])
+            self.assertTrue(hdf[self.planet]['AIRS-CH0_signal'].shape[0] == self.airs_signal.shape[0]//2)
+            self.assertTrue(hdf[self.planet]['AIRS-CH0_signal'].shape[1] == self.airs_signal.shape[1])
+            self.assertTrue(hdf[self.planet]['AIRS-CH0_signal'].shape[2] == self.airs_signal.shape[2])
+            self.assertTrue(hdf[self.planet]['FGS1_signal'].shape[0] == self.fgs_signal.shape[0]//2)
+            self.assertTrue(hdf[self.planet]['FGS1_signal'].shape[1] == self.fgs_signal.shape[1])
+            self.assertTrue(hdf[self.planet]['FGS1_signal'].shape[2] == self.fgs_signal.shape[2])
+
 
     def test_planet_list(self):
         '''Test planet list extraction'''
 
         planet_list = self.signal_correction._get_planet_list()
-
-        print(f'Planet list: {planet_list}')
 
         self.assertTrue(isinstance(planet_list, list))
         self.assertTrue(len(planet_list) > 0)
