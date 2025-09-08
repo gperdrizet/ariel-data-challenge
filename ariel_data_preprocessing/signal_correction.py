@@ -8,13 +8,13 @@ correlated double sampling (CDS), and flat field correction.
 # Standard library imports
 import itertools
 import os
+import time
 from multiprocessing import Manager, Process
 
 # Third party imports
 import h5py
 import numpy as np
 import pandas as pd
-
 from astropy.stats import sigma_clip
 
 # Internal imports
@@ -132,7 +132,8 @@ class SignalCorrection:
         # Set up worker process for each CPU
         worker_processes = []
 
-        for _ in range(self.n_cpus):
+        for i in range(self.n_cpus):
+            print(f'Starting worker process {i+1}/{self.n_cpus}')
             worker_processes.append(
                 Process(
                     target=self.correct_signal,
@@ -503,31 +504,48 @@ class SignalCorrection:
 
         # Stop signal handler
         stop_count = 0
+        print(f'Stopping on stop count = {self.n_cpus}')
+
+        output_count = 0
 
         while True:
             result = output_queue.get()
 
             if result['planet'] == 'STOP':
                 stop_count += 1
+                print(f'Received stop signal {stop_count}/{self.n_cpus}')
 
                 if stop_count == self.n_cpus:
                     break
 
-            planet = result['planet']
-            airs_signal = result['airs_signal']
-            fgs_signal = result['fgs_signal']
+            else:
+                planet = result['planet']
+                airs_signal = result['airs_signal']
+                fgs_signal = result['fgs_signal']
 
-            with h5py.File(output_file, 'a') as hdf:
+                output_count += 1
 
-                # Create groups for this planet if not existing
-                planet_group = hdf.require_group(planet)
+                print(f'Writing data for planet {output_count}')
 
-                # Create datasets for AIRS-CH0 and FGS1 signals
-                _ = planet_group.create_dataset('AIRS-CH0_signal', data=airs_signal)
-                _ = planet_group.create_dataset('FGS1_signal', data=fgs_signal)
+                with h5py.File(output_file, 'a') as hdf:
 
-                # Save the corrected signals
-                planet_group['AIRS-CH0_signal'][:] = airs_signal
-                planet_group['FGS1_signal'][:] = fgs_signal
+                    try:
+
+                        # Create groups for this planet if not existing
+                        planet_group = hdf.require_group(planet)
+
+                        # Create datasets for AIRS-CH0 and FGS1 signals
+                        _ = planet_group.create_dataset('AIRS-CH0_signal', data=airs_signal)
+                        _ = planet_group.create_dataset('FGS1_signal', data=fgs_signal)
+
+                        # Save the corrected signals
+                        planet_group['AIRS-CH0_signal'][:] = airs_signal
+                        planet_group['FGS1_signal'][:] = fgs_signal
+
+                    except TypeError as e:
+                        print(f'Error writing data for planet {planet}: {e}')
+                        print(f'Workunit was: {result}')
+
+                time.sleep(1)  # Ensure data is written before next iteration
 
         return True
