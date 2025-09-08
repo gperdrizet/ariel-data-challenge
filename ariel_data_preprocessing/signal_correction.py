@@ -48,7 +48,8 @@ class SignalCorrection:
             gain: float = 0.4369,
             offset: float = -1000.0,
             n_cpus: int = 1,
-            n_planets: int = -1
+            n_planets: int = -1,
+            downsample_fgs: bool = False
     ):
         '''
         Initialize the SignalCorrection class.
@@ -83,6 +84,7 @@ class SignalCorrection:
         self.cut_sup = cut_sup
         self.n_cpus = n_cpus
         self.n_planets = n_planets
+        self.downsample_fgs = downsample_fgs
 
         # Make sure output directory exists
         os.makedirs(self.output_data_path, exist_ok=True)
@@ -102,6 +104,10 @@ class SignalCorrection:
         if self.n_planets != -1:
             self.planet_list = self.planet_list[:self.n_planets]
 
+        # Set downsampling indices for FGS data
+        if self.downsample_fgs:
+            self.fgs_indices = self._fgs_downsamples()
+            self.fgs_frames = len(self.fgs_indices) if self.downsample_fgs else self.fgs_frames
 
     def run(self):
         '''
@@ -110,17 +116,19 @@ class SignalCorrection:
         This method orchestrates the entire preprocessing sequence,
         applying each correction step in order.
         '''
-
-        
         for planet in self.planet_list:
 
             # Get path to this planet's data
             planet_path = f'{self.input_data_path}/train/{planet}'
 
-            # Load and prep the raw data
+            # Load and reshape the FGS1 data
             fgs_signal = pd.read_parquet(
                 f'{planet_path}/FGS1_signal_0.parquet'
             ).to_numpy().reshape(self.fgs_frames, 32, 32)
+
+            # Down sample FGS data to match capture cadence of AIRS-CH0
+            if self.downsample_fgs:
+                fgs_signal = np.take(fgs_signal, self.fgs_indices)
 
             airs_signal = pd.read_parquet(
                 f'{planet_path}/AIRS-CH0_signal_0.parquet'
@@ -411,6 +419,21 @@ class SignalCorrection:
 
         return True
 
+
+    def _fgs_downsamples(self):
+        '''
+        Generate down sampling indices for FGS signal to match AIRS cadence.
+        '''
+        n = 24  # Take 2 elements, skip 20
+        indices_to_take = np.arange(0, self.fgs_frames, n)  # Start from 0, step by n
+        indices_to_take = np.concatenate([  # Add the next index
+            indices_to_take,
+            indices_to_take[:-1] + 1
+        ])
+
+        indices_to_take = np.sort(indices_to_take).astype(int)
+
+        return indices_to_take
 
 class CalibrationData:
     '''

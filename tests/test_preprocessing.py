@@ -72,7 +72,7 @@ class TestSignalCorrection(unittest.TestCase):
             input_data_path=self.input_data_path,
             output_data_path=self.output_data_path,
             airs_frames=airs_frames,
-            fgs_frames=fgs_frames,
+            fgs_frames=fgs_frames
         )
 
     def test_signal_correction(self):
