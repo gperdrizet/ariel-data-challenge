@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import h5py
 
-from ariel_data_preprocessing.signal_correction import SignalCorrection, CalibrationData
-
+from ariel_data_preprocessing.signal_correction import SignalCorrection
+from ariel_data_preprocessing.calibration_data import CalibrationData
 
 class TestSignalCorrection(unittest.TestCase):
 
