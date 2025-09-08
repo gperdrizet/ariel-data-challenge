@@ -439,6 +439,7 @@ class SignalCorrection:
 
         return indices_to_take
 
+
 class CalibrationData:
     '''
     Class to load and store calibration data for signal correction.
