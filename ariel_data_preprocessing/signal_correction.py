@@ -107,7 +107,6 @@ class SignalCorrection:
         # Set downsampling indices for FGS data
         if self.downsample_fgs:
             self.fgs_indices = self._fgs_downsamples()
-            self.fgs_frames = len(self.fgs_indices) if self.downsample_fgs else self.fgs_frames
 
     def run(self):
         '''
@@ -128,18 +127,23 @@ class SignalCorrection:
 
             # Down sample FGS data to match capture cadence of AIRS-CH0
             if self.downsample_fgs:
-                fgs_signal = np.take(fgs_signal, self.fgs_indices)
+                fgs_signal = np.take(fgs_signal, self.fgs_indices, axis=0)
+            
+            fgs_frames = fgs_signal.shape[0]
 
+            # Load and reshape the AIRS-CH0 data
             airs_signal = pd.read_parquet(
                 f'{planet_path}/AIRS-CH0_signal_0.parquet'
             ).to_numpy().reshape(self.airs_frames, 32, 356)[:, :, self.cut_inf:self.cut_sup]
+
+            airs_frames = airs_signal.shape[0]
 
             # Load and prep calibration data
             calibration_data = CalibrationData(
                 input_data_path=self.input_data_path,
                 planet_path=planet_path,
-                fgs_frames=self.fgs_frames,
-                airs_frames=self.airs_frames,
+                fgs_frames=fgs_frames,
+                airs_frames=airs_frames,
                 cut_inf=self.cut_inf,
                 cut_sup=self.cut_sup
             )
@@ -428,7 +432,7 @@ class SignalCorrection:
         indices_to_take = np.arange(0, self.fgs_frames, n)  # Start from 0, step by n
         indices_to_take = np.concatenate([  # Add the next index
             indices_to_take,
-            indices_to_take[:-1] + 1
+            indices_to_take + 1
         ])
 
         indices_to_take = np.sort(indices_to_take).astype(int)
