@@ -6,9 +6,9 @@ correlated double sampling (CDS), and flat field correction.
 '''
 
 # Standard library imports
-from fileinput import filename
 import itertools
 import os
+from multiprocessing import Manager, Process
 
 # Third party imports
 import h5py
@@ -111,14 +111,85 @@ class SignalCorrection:
         if self.downsample_fgs:
             self.fgs_indices = self._fgs_downsamples()
 
+
     def run(self):
+        '''
+        Run the signal correction pipeline using multiprocessing.
+        
+        This method starts worker processes to handle signal correction
+        for multiple planets in parallel, and manages the input/output queues.
+        '''
+
+        # Start the multiprocessing manager
+        manager = Manager()
+
+        # Takes planed id string and sends to calibration worker
+        input_queue = manager.Queue()
+
+        # Takes calibrated data from calibration worker to output worker
+        output_queue = manager.Queue()
+
+        # Set up worker process for each CPU
+        worker_processes = []
+
+        for _ in range(self.n_cpus):
+            worker_processes.append(
+                Process(
+                    target=self.correct_signal,
+                    args=(input_queue, output_queue)
+                )
+            )
+
+        # Add the planet IDs to the input queue
+        for planet in self.planet_list:
+            input_queue.put(planet)
+
+        # Add a stop signal for each worker
+        for _ in range(self.n_cpus):
+            input_queue.put('STOP')
+
+        # Set up an output process to save results
+        output_process = Process(
+            target=self._save_corrected_data,
+            args=(output_queue,)
+        )
+
+        # Start all worker processes
+        for process in worker_processes:
+            process.start()
+
+        # Start the output process
+        output_process.start()
+
+        # Join and close all worker processes
+        for process in worker_processes:
+            process.join()
+            process.close()
+
+        # Join and close the output process
+        output_process.join()
+        output_process.close()
+
+
+    def correct_signal(self, input_queue, output_queue):
         '''
         Run the complete signal correction pipeline.
         
         This method orchestrates the entire preprocessing sequence,
         applying each correction step in order.
         '''
-        for planet in self.planet_list:
+
+        while True:
+            planet = input_queue.get()
+
+            if planet == 'STOP':
+                result = {
+                    'planet': 'STOP',
+                    'airs_signal': None,
+                    'fgs_signal': None
+                }
+                output_queue.put(result)
+                break
 
             # Get path to this planet's data
             planet_path = f'{self.input_data_path}/train/{planet}'
@@ -217,12 +288,15 @@ class SignalCorrection:
                     calibration_data.dead_fgs
                 )
 
-            # Save the corrected data
-            self._save_corrected_data(
-                planet,
-                airs_signal,
-                fgs_signal
-            )
+            result = {
+                'planet': planet,
+                'airs_signal': airs_signal,
+                'fgs_signal': fgs_signal
+            }
+
+            output_queue.put(result)
+
+        return True
 
 
     def _ADC_convert(self, signal):
@@ -395,7 +469,23 @@ class SignalCorrection:
         return [planet_path.split('/')[-1] for planet_path in planets]
 
 
-    def _save_corrected_data(self, planet, airs_signal, fgs_signal):
+    def _fgs_downsamples(self):
+        '''
+        Generate down sampling indices for FGS signal to match AIRS cadence.
+        '''
+        n = 24  # Take 2 elements, skip 20
+        indices_to_take = np.arange(0, self.fgs_frames, n)  # Start from 0, step by n
+        indices_to_take = np.concatenate([  # Add the next index
+            indices_to_take,
+            indices_to_take + 1
+        ])
+
+        indices_to_take = np.sort(indices_to_take).astype(int)
+
+        return indices_to_take
+    
+
+    def _save_corrected_data(self, output_queue):
         '''
         Save corrected data to output directory.
         
@@ -411,33 +501,33 @@ class SignalCorrection:
         # File path for hdf5 output
         output_file = (f'{self.output_data_path}/train.h5')
 
-        with h5py.File(output_file, 'a') as hdf:
+        # Stop signal handler
+        stop_count = 0
 
-            # Create groups for this planet if not existing
-            planet_group = hdf.require_group(planet)
+        while True:
+            result = output_queue.get()
 
-            # Create datasets for AIRS-CH0 and FGS1 signals
-            _ = planet_group.create_dataset('AIRS-CH0_signal', data=airs_signal)
-            _ = planet_group.create_dataset('FGS1_signal', data=fgs_signal)
+            if result['planet'] == 'STOP':
+                stop_count += 1
 
-            # Save the corrected signals
-            planet_group['AIRS-CH0_signal'][:] = airs_signal
-            planet_group['FGS1_signal'][:] = fgs_signal
+                if stop_count == self.n_cpus:
+                    break
+
+            planet = result['planet']
+            airs_signal = result['airs_signal']
+            fgs_signal = result['fgs_signal']
+
+            with h5py.File(output_file, 'a') as hdf:
+
+                # Create groups for this planet if not existing
+                planet_group = hdf.require_group(planet)
+
+                # Create datasets for AIRS-CH0 and FGS1 signals
+                _ = planet_group.create_dataset('AIRS-CH0_signal', data=airs_signal)
+                _ = planet_group.create_dataset('FGS1_signal', data=fgs_signal)
+
+                # Save the corrected signals
+                planet_group['AIRS-CH0_signal'][:] = airs_signal
+                planet_group['FGS1_signal'][:] = fgs_signal
 
         return True
-
-
-    def _fgs_downsamples(self):
-        '''
-        Generate down sampling indices for FGS signal to match AIRS cadence.
-        '''
-        n = 24  # Take 2 elements, skip 20
-        indices_to_take = np.arange(0, self.fgs_frames, n)  # Start from 0, step by n
-        indices_to_take = np.concatenate([  # Add the next index
-            indices_to_take,
-            indices_to_take + 1
-        ])
-
-        indices_to_take = np.sort(indices_to_take).astype(int)
-
-        return indices_to_take
