@@ -17,6 +17,9 @@ import pandas as pd
 
 from astropy.stats import sigma_clip
 
+# Internal imports
+from ariel_data_preprocessing.calibration_data import CalibrationData
+
 
 class SignalCorrection:
     '''
@@ -41,12 +44,15 @@ class SignalCorrection:
             dark_subtraction: bool = True,
             cds_subtraction: bool = True,
             flat_field_correction: bool = True,
+            fgs_frames: int = 135000,
+            airs_frames: int = 11250,
             cut_inf: int = 39,
             cut_sup: int = 321,
             gain: float = 0.4369,
             offset: float = -1000.0,
             n_cpus: int = 1,
-            n_planets: int = -1
+            n_planets: int = -1,
+            downsample_fgs: bool = False
     ):
         '''
         Initialize the SignalCorrection class.
@@ -73,12 +79,15 @@ class SignalCorrection:
         self.dark_subtraction = dark_subtraction
         self.cds_subtraction = cds_subtraction
         self.flat_field_correction = flat_field_correction
+        self.fgs_frames = fgs_frames
+        self.airs_frames = airs_frames
         self.gain = gain
         self.offset = offset
         self.cut_inf = cut_inf
         self.cut_sup = cut_sup
         self.n_cpus = n_cpus
         self.n_planets = n_planets
+        self.downsample_fgs = downsample_fgs
 
         # Make sure output directory exists
         os.makedirs(self.output_data_path, exist_ok=True)
@@ -98,8 +107,9 @@ class SignalCorrection:
         if self.n_planets != -1:
             self.planet_list = self.planet_list[:self.n_planets]
 
-        print('SignalCorrection initialized.')
-
+        # Set downsampling indices for FGS data
+        if self.downsample_fgs:
+            self.fgs_indices = self._fgs_downsamples()
 
     def run(self):
         '''
@@ -108,27 +118,35 @@ class SignalCorrection:
         This method orchestrates the entire preprocessing sequence,
         applying each correction step in order.
         '''
-
-        
         for planet in self.planet_list:
 
             # Get path to this planet's data
             planet_path = f'{self.input_data_path}/train/{planet}'
 
-            # Load and prep the raw data
+            # Load and reshape the FGS1 data
             fgs_signal = pd.read_parquet(
                 f'{planet_path}/FGS1_signal_0.parquet'
-            ).to_numpy().reshape(4, 32, 32)
+            ).to_numpy().reshape(self.fgs_frames, 32, 32)
+
+            # Down sample FGS data to match capture cadence of AIRS-CH0
+            if self.downsample_fgs:
+                fgs_signal = np.take(fgs_signal, self.fgs_indices, axis=0)
             
+            fgs_frames = fgs_signal.shape[0]
+
+            # Load and reshape the AIRS-CH0 data
             airs_signal = pd.read_parquet(
                 f'{planet_path}/AIRS-CH0_signal_0.parquet'
-            ).to_numpy().reshape(4, 32, 356)[:, :, self.cut_inf:self.cut_sup]
+            ).to_numpy().reshape(self.airs_frames, 32, 356)[:, :, self.cut_inf:self.cut_sup]
+
+            airs_frames = airs_signal.shape[0]
 
             # Load and prep calibration data
             calibration_data = CalibrationData(
                 input_data_path=self.input_data_path,
                 planet_path=planet_path,
-                fgs_signal=fgs_signal,
+                fgs_frames=fgs_frames,
+                airs_frames=airs_frames,
                 cut_inf=self.cut_inf,
                 cut_sup=self.cut_sup
             )
@@ -409,64 +427,17 @@ class SignalCorrection:
         return True
 
 
-class CalibrationData:
-    '''
-    Class to load and store calibration data for signal correction.
-    
-    This class reads all necessary calibration files for a given planet
-    and stores them as attributes for use in the SignalCorrection pipeline.
-    '''
-
-    def __init__(
-            self,
-            input_data_path: str,
-            planet_path: str,
-            fgs_signal: np.ndarray,
-            cut_inf: int,
-            cut_sup: int
-        ):
+    def _fgs_downsamples(self):
         '''
-        Initialize CalibrationData by loading calibration files.
-        
-        Args:
-            planet_path (str): Path to the planet's data directory
-            cut_inf (int): Lower wavelength cut index for AIRS-CH0
-            cut_sup (int): Upper wavelength cut index for AIRS-CH0
+        Generate down sampling indices for FGS signal to match AIRS cadence.
         '''
-    
-        # Load and prep calibration data
-        self.dark_airs = pd.read_parquet(
-            f'{planet_path}/AIRS-CH0_calibration_0/dark.parquet'
-        ).values.astype(np.float64).reshape((32, 356))[:, cut_inf:cut_sup]
-        self.dead_airs = pd.read_parquet(
-            f'{planet_path}/AIRS-CH0_calibration_0/dead.parquet'
-        ).values.astype(np.float64).reshape((32, 356))[:, cut_inf:cut_sup]
+        n = 24  # Take 2 elements, skip 20
+        indices_to_take = np.arange(0, self.fgs_frames, n)  # Start from 0, step by n
+        indices_to_take = np.concatenate([  # Add the next index
+            indices_to_take,
+            indices_to_take + 1
+        ])
 
-        self.dark_fgs = pd.read_parquet(
-            f'{planet_path}/FGS1_calibration_0/dark.parquet'
-        ).values.astype(np.float64).reshape((32, 32))
-        self.dead_fgs = pd.read_parquet(
-            f'{planet_path}/FGS1_calibration_0/dead.parquet'
-        ).values.astype(np.float64).reshape((32, 32))
+        indices_to_take = np.sort(indices_to_take).astype(int)
 
-        self.linear_corr_airs = pd.read_parquet(
-            f'{planet_path}/AIRS-CH0_calibration_0/linear_corr.parquet'
-        ).values.astype(np.float64).reshape((6, 32, 356))[:, :, cut_inf:cut_sup]
-        self.linear_corr_fgs = pd.read_parquet(
-            f'{planet_path}/FGS1_calibration_0/linear_corr.parquet'
-        ).values.astype(np.float64).reshape((6, 32, 32))
-
-        self.flat_airs = pd.read_parquet(
-            f'{planet_path}/AIRS-CH0_calibration_0/flat.parquet'
-        ).values.astype(np.float64).reshape((32, 356))[:, cut_inf:cut_sup]
-        self.flat_fgs = pd.read_parquet(
-            f'{planet_path}/FGS1_calibration_0/flat.parquet'
-        ).values.astype(np.float64).reshape((32, 32))
-
-        self.axis_info = pd.read_parquet(f'{input_data_path}/axis_info.parquet')
-
-        self.dt_airs = self.axis_info['AIRS-CH0-integration_time'].dropna().values[:4]
-        self.dt_airs[1::2] += 0.1 # Why are we adding here - I don't think that is right...
-
-        self.dt_fgs = np.ones(len(fgs_signal)) * 0.1
-        self.dt_fgs[1::2] += 0.1 # This one looks more correct
+        return indices_to_take
