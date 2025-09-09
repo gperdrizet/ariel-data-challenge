@@ -5,6 +5,8 @@ title: "From Notebook to Package: Refactoring and Deploying the Signal Correctio
 
 Yesterday's challenge was getting the signal correction pipeline to work. Today's challenge? Making it production-ready. Time to refactor the preprocessing code into a proper Python package, add comprehensive testing, and set up automated CI/CD for deployment to PyPI.
 
+TLDR: here is the [PyPi package](https://pypi.org/project/ariel-data-preprocessing)
+
 ## The Refactoring Challenge
 
 The original signal correction pipeline worked great in a Jupyter notebook, but notebook code doesn't scale well. Here's what needed to happen:
