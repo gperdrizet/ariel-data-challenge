@@ -74,7 +74,7 @@ The optimized pipeline uses:
 - **Shared queues** for inter-process communication
 - **Smart downsampling** that preserves CDS structure
 
-All of this is now packaged and available via `pip install ariel-data-challenge`, making it easy to deploy on Kaggle or any other platform.
+All of this is now packaged and available via `pip install ariel-data-preprocessing`, making it easy to deploy on Kaggle or any other platform.
 
 ## Result summary
 
