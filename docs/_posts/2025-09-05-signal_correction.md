@@ -21,7 +21,7 @@ Following the competition organizers' guidance, here's the complete preprocessin
 Here's how the AIRS-CH0 signal evolves through each correction step:
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/data_preprocessing/02.1-AIRS_signal_correction_steps.jpg" alt="AIRS signal correction pipeline steps">
+  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_correction/02.1-AIRS_signal_correction_steps.jpg" alt="AIRS signal correction pipeline steps">
 </p>
 
 Each step addresses specific detector artifacts:
@@ -38,11 +38,11 @@ After the complete pipeline, both instruments produce much cleaner data:
 
 <div style="display: flex; justify-content: space-around; align-items: flex-start; gap: 20px; margin: 20px 0;">
   <div style="flex: 1; text-align: center;">
-    <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/data_preprocessing/02.1-corrected_AIRS_CDS_sample_frames.jpg" alt="Corrected AIRS CDS frames" style="max-width: 100%; height: auto;">
+    <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_correction/02.1-corrected_AIRS_CDS_sample_frames.jpg" alt="Corrected AIRS CDS frames" style="max-width: 100%; height: auto;">
     <p style="margin-top: 10px; font-style: italic;">Corrected AIRS-CH0 frames</p>
   </div>
   <div style="flex: 1; text-align: center;">
-    <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/data_preprocessing/02.1-corrected_FGS1_CDS_sample_frames.jpg" alt="Corrected FGS1 CDS frames" style="max-width: 100%; height: auto;">
+    <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_correction/02.1-corrected_FGS1_CDS_sample_frames.jpg" alt="Corrected FGS1 CDS frames" style="max-width: 100%; height: auto;">
     <p style="margin-top: 10px; font-style: italic;">Corrected FGS1 frames</p>
   </div>
 </div>
@@ -55,11 +55,11 @@ The real test: can we still see exoplanet transits after all this processing?
 
 <div style="display: flex; justify-content: space-around; align-items: flex-start; gap: 20px; margin: 20px 0;">
   <div style="flex: 1; text-align: center;">
-    <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/data_preprocessing/02.1-corrected_AIRS_CDS_transit.jpg" alt="Corrected AIRS transit" style="max-width: 100%; height: auto;">
+    <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_correction/02.1-corrected_AIRS_CDS_transit.jpg" alt="Corrected AIRS transit" style="max-width: 100%; height: auto;">
     <p style="margin-top: 10px; font-style: italic;">AIRS-CH0 total flux over time</p>
   </div>
   <div style="flex: 1; text-align: center;">
-    <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/data_preprocessing/02.1-corrected_FGS_CDS_transit.jpg" alt="Corrected FGS transit" style="max-width: 100%; height: auto;">
+    <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_correction/02.1-corrected_FGS_CDS_transit.jpg" alt="Corrected FGS transit" style="max-width: 100%; height: auto;">
     <p style="margin-top: 10px; font-style: italic;">FGS1 total flux over time</p>
   </div>
 </div>

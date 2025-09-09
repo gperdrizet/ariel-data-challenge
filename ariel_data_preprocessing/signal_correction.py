@@ -133,7 +133,7 @@ class SignalCorrection:
         worker_processes = []
 
         for i in range(self.n_cpus):
-            print(f'Starting worker process {i+1}/{self.n_cpus}')
+
             worker_processes.append(
                 Process(
                     target=self.correct_signal,
@@ -504,16 +504,12 @@ class SignalCorrection:
 
         # Stop signal handler
         stop_count = 0
-        print(f'Stopping on stop count = {self.n_cpus}')
-
-        output_count = 0
 
         while True:
             result = output_queue.get()
 
             if result['planet'] == 'STOP':
                 stop_count += 1
-                print(f'Received stop signal {stop_count}/{self.n_cpus}')
 
                 if stop_count == self.n_cpus:
                     break
@@ -522,10 +518,6 @@ class SignalCorrection:
                 planet = result['planet']
                 airs_signal = result['airs_signal']
                 fgs_signal = result['fgs_signal']
-
-                output_count += 1
-
-                print(f'Writing data for planet {output_count}')
 
                 with h5py.File(output_file, 'a') as hdf:
 
@@ -545,7 +537,5 @@ class SignalCorrection:
                     except TypeError as e:
                         print(f'Error writing data for planet {planet}: {e}')
                         print(f'Workunit was: {result}')
-
-                time.sleep(1)  # Ensure data is written before next iteration
 
         return True
