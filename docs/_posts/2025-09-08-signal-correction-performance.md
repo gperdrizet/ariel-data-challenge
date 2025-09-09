@@ -21,7 +21,7 @@ The FGS1 guidance camera captures 135,000 frames per planet, while AIRS-CH0 only
 The downsampling strategy takes every 24th frame pair from the FGS1 data, reducing the number of frames to ~15% of the raw count, while preserving the correlated double sampling structure. 
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/data_preprocessing/02.2-predicted_runtime_vs_planets_downsampling.jpg" alt="Runtime comparison with and without downsampling">
+  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_correction/02.2-predicted_runtime_vs_planets_downsampling.jpg" alt="Runtime comparison with and without downsampling">
 </p>
 
 **Results:** Downsampling cuts predicted runtime almost in half. For 1100 planets:
@@ -33,7 +33,7 @@ The downsampling strategy takes every 24th frame pair from the FGS1 data, reduci
 With downsampling we make the time cutoff, but it would be great to have more time left over after signal correction. Time to parallelize across multiple CPU cores. The pipeline now uses multiprocessing to handle multiple planets simultaneously, with separate worker processes for signal correction and a dedicated process for saving results.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/data_preprocessing/02.2-predicted_runtime_vs_planets_cpu_count.jpg" alt="Runtime scaling with CPU count">
+  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_correction/02.2-predicted_runtime_vs_planets_cpu_count.jpg" alt="Runtime scaling with CPU count">
 </p>
 
 **Results:** The speedup is significant but shows diminishing returns:
@@ -47,7 +47,7 @@ With downsampling we make the time cutoff, but it would be great to have more ti
 Parallelization comes with a memory cost. More worker processes mean more data in memory. Let's also make sure we can run all 4 avalible cores in a free tier Kaggle notebook simultaneously and not run out of memory:
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/data_preprocessing/02.2-memory_vs_cpu_count.jpg" alt="Memory usage scaling">
+  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_correction/02.2-memory_vs_cpu_count.jpg" alt="Memory usage scaling">
 </p>
 
 **Memory scaling for 32 planets:**
