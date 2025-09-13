@@ -29,7 +29,7 @@ jobs:
 
     - name: Test signal correction
       run: |
-        python -m unittest tests/test_preprocessing.py
+        python -m unittest tests/test_signal_correction.py
 
     - name: Test signal extraction
       run: |
