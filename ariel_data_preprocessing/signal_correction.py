@@ -8,7 +8,6 @@ correlated double sampling (CDS), and flat field correction.
 # Standard library imports
 import itertools
 import os
-import time
 from multiprocessing import Manager, Process
 
 # Third party imports
