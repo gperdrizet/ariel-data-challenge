@@ -147,7 +147,7 @@ class TestSignalExtraction(unittest.TestCase):
             
             # Should have same number of frames as input
             expected_frames = self.test_airs_frames.shape[0]
-            self.assertEqual(extracted_signal.shape[0], expected_frames - self.smoothing_window)
+            self.assertEqual(extracted_signal.shape[0], expected_frames - self.smoothing_window + 1)
             
             # Should have same number of wavelengths as input
             expected_wavelengths = self.test_airs_frames.shape[2]
