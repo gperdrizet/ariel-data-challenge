@@ -18,8 +18,8 @@ class TestSignalCorrection(unittest.TestCase):
         self.planet = '342072318'
         self.planet_path = f'{self.input_data_path}/train/{self.planet}'
 
-        self.airs_frames = 4
-        self.fgs_frames = 4
+        self.airs_frames = 50
+        self.fgs_frames = 50
         self.cut_inf = 39
         self.cut_sup = 321
 
