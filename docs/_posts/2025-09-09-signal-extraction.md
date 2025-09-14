@@ -16,7 +16,7 @@ The question becomes: how do we automatically identify and extract just the sign
 The solution involves analyzing the signal strength across detector rows to identify the "spectral strip" - the handful of rows containing the actual dispersed spectrum:
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/blob/main/figures/signal_extraction/02.3.3-total_flux_by_row_spectrogram.jpg" alt="Signal strength by detector row">
+  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_extraction/02.3.3-total_flux_by_row_spectrogram.jpg" alt="Signal strength by detector row">
 </p>
 
 The plot reveals the signal structure clearly: rows 14-17 contain the strongest signals. Outside of that narrow spatial band, the signal drops off quickly. This makes sense - the telescope's grism disperses starlight into a narrow horizontal band across the detector.
@@ -24,7 +24,7 @@ The plot reveals the signal structure clearly: rows 14-17 contain the strongest 
 Rather than hardcoding row numbers (which might vary between planets), the extraction algorithm uses an adaptive threshold approach:
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/blob/main/figures/signal_extraction/02.3.12-row_number_selection.jpg" alt="Signal strength by detector row">
+  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_extraction/02.3.12-row_number_selection.jpg" alt="Signal strength by detector row">
 </p>
 
 1. **Analyze signal strength**: Sum pixel values across each row in the first frame
@@ -37,7 +37,7 @@ Rather than hardcoding row numbers (which might vary between planets), the extra
 The results are impressive: the extracted signal strip shows exoplanet transits just as clearly as using the total frame flux, but with dramatically reduced data volume and a subjective reduction in outliers. Summing the brightest rows also reduces noise in the spectrum derived from each frame.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/blob/main/figures/signal_extraction/02.3.4-transit_plot_total_vs_strip.jpg" alt="Signal strength by detector row">
+  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_extraction/02.3.4-transit_plot_total_vs_strip.jpg" alt="Signal strength by detector row">
 </p>
 
 ## Performance Impact
