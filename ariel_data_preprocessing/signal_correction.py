@@ -231,7 +231,7 @@ class SignalCorrection:
         # Set up worker process for each CPU
         worker_processes = []
 
-        for i in range(self.n_cpus):
+        for _ in range(self.n_cpus):
 
             worker_processes.append(
                 Process(
@@ -331,7 +331,11 @@ class SignalCorrection:
             # Down sample FGS data to match capture cadence of AIRS-CH0
             if self.downsample_fgs:
                 fgs_signal = np.take(fgs_signal, self.fgs_indices, axis=0)
-            
+
+            # Convert to float64 from unit16
+            fgs_signal = fgs_signal.astype(np.float64)
+    
+            # Get frame count
             fgs_frames = fgs_signal.shape[0]
 
             # Load and reshape the AIRS-CH0 data
@@ -339,6 +343,10 @@ class SignalCorrection:
                 f'{planet_path}/AIRS-CH0_signal_0.parquet'
             ).to_numpy().reshape(self.airs_frames, 32, 356)[:, :, self.cut_inf:self.cut_sup]
 
+            # Convert to float64 from unit16
+            airs_signal = airs_signal.astype(np.float64)
+
+            # Get frame count
             airs_frames = airs_signal.shape[0]
 
             # Load and prep calibration data

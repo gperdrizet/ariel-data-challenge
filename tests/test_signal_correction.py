@@ -28,9 +28,13 @@ class TestSignalCorrection(unittest.TestCase):
             f'{self.planet_path}/FGS1_signal_0.parquet'
         ).to_numpy().reshape(self.fgs_frames, 32, 32)
 
+        self.fgs_signal = self.fgs_signal.astype(np.float64)
+
         self.airs_signal = pd.read_parquet(
             f'{self.planet_path}/AIRS-CH0_signal_0.parquet'
         ).to_numpy().reshape(self.airs_frames, 32, 356)[:, :, self.cut_inf:self.cut_sup]
+
+        self.airs_signal = self.airs_signal.astype(np.float64)
 
         self.signal_correction = SignalCorrection(
             input_data_path=self.input_data_path,
