@@ -1,6 +1,5 @@
 '''Globals for ariel data challenge project'''
 
-import os
 
 #############################################################
 # Data Stuff ################################################
@@ -21,6 +20,31 @@ SAMPLE_PLANET = '342072318'
 
 
 #############################################################
+# Figure colors #############################################
+#############################################################
+from matplotlib import colormaps as cm
+
+COLORMAP = cm.get_cmap('tab20c')
+COLORS = COLORMAP.colors
+
+# Set some colors for plotting
+BLUE = COLORS[0]
+LIGHT_BLUE = COLORS[1]
+ORANGE = COLORS[4]
+LIGHT_ORANGE = COLORS[5]
+GREEN = COLORS[8]
+LIGHT_GREEN = COLORS[9]
+PURPLE = COLORS[12]
+LIGHT_PURPLE = COLORS[13]
+GRAY = COLORS[16]
+LIGHT_GRAY = COLORS[17]
+
+TRANSIT_COLOR = ORANGE
+SPECTRUM_COLOR = PURPLE
+
+HEATMAP_CMAP = 'PuOr_r'
+
+#############################################################
 # Figure export #############################################
 #############################################################
 
@@ -30,6 +54,7 @@ STD_FIG_DPI = 100
 #############################################################
 # Optuna RDB credentials ####################################
 #############################################################
+import os
 
 # USER = os.environ['POSTGRES_USER']
 # PASSWD = os.environ['POSTGRES_PASSWD']
