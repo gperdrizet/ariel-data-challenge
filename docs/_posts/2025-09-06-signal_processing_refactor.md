@@ -88,7 +88,8 @@ This refactoring effort pays dividends in multiple ways:
 
 ### **Reproducibility**
 Anyone can now install and use the exact same preprocessing pipeline:
-```bash
+
+```
 pip install ariel-data-preprocessing
 ```
 
