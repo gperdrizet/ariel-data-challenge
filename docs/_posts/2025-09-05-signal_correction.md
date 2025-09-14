@@ -5,7 +5,7 @@ title: "Signal Correction Pipeline: From Raw Counts to Science-Ready Data"
 
 Time to tackle the full signal correction pipeline! After understanding the timing structure and CDS basics, it's time to implement all six preprocessing steps to turn noisy detector outputs into clean, calibrated data suitable for exoplanet analysis.
 
-## The Six-Step Pipeline
+## 1. Six-Step image correction pipeline
 
 Following the competition organizers' guidance, here's the complete preprocessing workflow:
 
@@ -16,7 +16,7 @@ Following the competition organizers' guidance, here's the complete preprocessin
 5. **Correlated Double Sampling (CDS)** - Subtract paired exposures to reduce read noise
 6. **Flat Field Correction** - Normalize pixel-to-pixel sensitivity variations
 
-## Step-by-Step Results
+## 2. Step-by-step rsults
 
 Here's how the frames from both instruments evolve through each correction step:
 
@@ -33,7 +33,7 @@ Each step addresses specific detector artifacts:
 - **Flat fielding** normalizes pixel-to-pixel sensitivity differences
 
 
-## Transit Detection
+## 3. Transit detection
 
 Can we still see exoplanet transits after signal correction? 
 
@@ -43,7 +43,7 @@ Can we still see exoplanet transits after signal correction?
 
 Excellent! The transit signal is clearly visible in both instruments after correction. Surprisingly, the AIRS data shows the transit even more clearly than the FGS data - apparently it's a proper science instrument, not just an alignment camera. We are still looking in a tiny drop in signal for both instruments during this planet's transit: ~1.5% for FGS1 and ~2.5% for AIRS-CH0.
 
-## Performance Considerations
+## 4. Performance considerations
 
 The full six-step pipeline works, but it's computationally expensive. Processing one planet takes significant time, and with Kaggle's 4-core limit, we need to think about optimization strategies:
 
@@ -52,7 +52,7 @@ The full six-step pipeline works, but it's computationally expensive. Processing
 3. **Parallelize where possible** - Take advantage of multiple cores for batch processing
 4. **Order of operations** - Apply data reduction steps early to minimize processing overhead
 
-## Next Steps
+## 5. Next steps
 
 With the signal correction pipeline working and transits clearly visible in the processed data, the foundation is solid. The next priorities are:
 
