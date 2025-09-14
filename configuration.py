@@ -1,6 +1,5 @@
 '''Globals for ariel data challenge project'''
 
-import os
 
 #############################################################
 # Data Stuff ################################################
@@ -17,8 +16,40 @@ SIGNAL_CORRECTED_DIRECTORY = f'{DATA_DIRECTORY}/signal_corrected'
 EXPERIMENT_RESULTS_DIRECTORY = f'{DATA_DIRECTORY}/experiment_results'
 FIGURES_DIRECTORY = './figures'
 
+# Planet to use for demonstration plotting, sample frames etc.
 SAMPLE_PLANET = '342072318'
 
+# Number of frames to save for unittesting
+SAMPLE_FRAMES = 50
+
+
+#############################################################
+# Figure colors #############################################
+#############################################################
+from matplotlib import colormaps as cm
+
+COLORMAP = cm.get_cmap('tab20c')
+COLORS = COLORMAP.colors
+
+# Set some colors for plotting
+BLUE = COLORS[0]
+LIGHT_BLUE = COLORS[1]
+ORANGE = COLORS[4]
+LIGHT_ORANGE = COLORS[5]
+GREEN = COLORS[8]
+LIGHT_GREEN = COLORS[9]
+PURPLE = COLORS[12]
+LIGHT_PURPLE = COLORS[13]
+GRAY = COLORS[16]
+LIGHT_GRAY = COLORS[17]
+LIGHTER_GRAY = COLORS[18]
+LIGHT_LIGHTER_GRAY = COLORS[19]
+
+TRANSIT_COLOR = ORANGE
+SPECTRUM_COLOR = PURPLE
+
+AIRS_HEATMAP_CMAP = 'PuOr_r'
+FGS1_HEATMAP_CMAP = 'RdGy'
 
 #############################################################
 # Figure export #############################################
@@ -30,6 +61,7 @@ STD_FIG_DPI = 100
 #############################################################
 # Optuna RDB credentials ####################################
 #############################################################
+import os
 
 # USER = os.environ['POSTGRES_USER']
 # PASSWD = os.environ['POSTGRES_PASSWD']
