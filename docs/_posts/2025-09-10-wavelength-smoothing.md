@@ -12,7 +12,7 @@ After signal correction and extraction, the individual frame spectra and the ove
 The solution requires intelligent smoothing that preserves real signals while reducing noise. Three different approaches were tested on the wavelength time series:
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_extraction/02.4-wavelength_smoothing.jpg" alt="Comparison of smoothing methods">
+  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_extraction/02.4.1-wavelength_smoothing.jpg" alt="Comparison of smoothing methods">
 </p>
 
 The comparison reveals important trade-offs:
