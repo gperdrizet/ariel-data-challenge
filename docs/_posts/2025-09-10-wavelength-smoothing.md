@@ -5,7 +5,7 @@ title: "Wavelength Smoothing: Taming Spectral Noise for Clean Time Series"
 
 With clean spectral signals extracted from the AIRS-CH0 detector rows, the next challenge emerges: individual wavelength channels are incredibly noisy. Each extracted time series shows significant frame-to-frame variations that could mask the subtle exoplanet atmospheric signals we're trying to detect. Time for some advanced noise reduction.
 
-## The Noise Problem
+## 1. The noise problem
 
 After signal correction and extraction, the individual frame spectra and the overall transit signal look great. But I still have a lot of frame-to-frame noise in the individual wavelength channels.
 
@@ -23,7 +23,7 @@ The comparison reveals important trade-offs:
 
 For processing 1100+ planets within Kaggle's time constraints, the moving average emerges as the clear winner - it provides excellent noise reduction while being computationally efficient enough for production use.
 
-## Efficient Moving Average Implementation
+## 2. Efficient moving average implementation
 
 The key insight is using cumulative sums for O(n) moving average computation instead of O(n×w) sliding window calculations:
 
@@ -41,7 +41,7 @@ def moving_average_rows(a, n):
 
 This approach scales beautifully - it can smooth all wavelength channels simultaneously with minimal computational overhead.
 
-## Spectral Time Series Results
+## 3. Spectral time series results
 
 Applying the moving average smoothing to the entire extracted dataset produces remarkably clean spectral time series:
 
@@ -54,7 +54,7 @@ The smoothed spectrogram reveals several important features:
 - **Clear temporal structure**: Systematic variations that likely correspond to the exoplanet transit
 - **Reduced noise floor**: Frame-to-frame variations are dramatically suppressed
 
-## Exoplanet transit signal
+## 4. Exoplanet transit signal
 
 The total signal per frame now looks even better - yes that is a scatter plot!
 
@@ -62,11 +62,11 @@ The total signal per frame now looks even better - yes that is a scatter plot!
   <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_extraction/02.4.3-transit_plot_total_vs_wavelength_smoothed.jpg" alt="Smoothed spectral time series">
 </p>
 
-## Parameter Optimization
+## 5. Parameter optimization
 
 The smoothing window size becomes a critical parameter balancing noise reduction against signal preservation. This is included as a tunable parameter in the signal extraction pipeline. In limited experimentation thus far, a window size of ~200 appears to be the sweet spot - but this should be rigorously optimized later.
 
-## Integration with Signal Extraction
+## 6. Integration with signal extraction
 
 The wavelength smoothing integrates seamlessly into the signal extraction pipeline as an optional final step:
 

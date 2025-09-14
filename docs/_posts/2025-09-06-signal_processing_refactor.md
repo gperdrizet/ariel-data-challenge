@@ -7,7 +7,7 @@ Yesterday's challenge was getting the signal correction pipeline to work. Today'
 
 TLDR: here is the [PyPi package](https://pypi.org/project/ariel-data-preprocessing)
 
-## The Refactoring Challenge
+## 1. Refactoring the signal correction pipeline
 
 The original signal correction pipeline worked great in a Jupyter notebook, but notebook code doesn't scale well. Here's what needed to happen:
 
@@ -17,9 +17,9 @@ The original signal correction pipeline worked great in a Jupyter notebook, but 
 4. **Set up CI/CD workflows** for automated testing and deployment
 5. **Package for PyPI** so anyone can install with `pip install ariel-data-challenge`
 
-## The SignalCorrection Class
+## 2. The SignalCorrection() class
 
-The refactored `SignalCorrection` class in `ariel_data_preprocessing/signal_correction.py` implements the complete 6-step pipeline:
+The refactored `SignalCorrection()` class in `ariel_data_preprocessing/signal_correction.py` implements the complete 6-step pipeline:
 
 ```python
 class SignalCorrection:
@@ -46,7 +46,7 @@ Each step is now a private method with clear documentation:
 
 The class is configurable with ADC parameters, CPU count for parallel processing, and input/output data paths.
 
-## Comprehensive Unit Testing
+## 3. Comprehensive unit testing
 
 Testing a signal processing pipeline requires careful validation of each step. The test suite in `tests/test_preprocessing.py` covers:
 
@@ -57,57 +57,57 @@ Testing a signal processing pipeline requires careful validation of each step. T
 
 Each test uses a subset of real Ariel data to ensure the corrections work with actual telescope outputs, not just synthetic test cases.
 
-## Automated CI/CD Pipeline
+## 4. Automated CI/CD pipeline
 
 Three GitHub workflows handle different aspects of the development pipeline:
 
-### 1. Unit Testing (`unittest.yml`)
+### 4.1. Unit testing (`unittest.yml`)
 Triggered on every pull request to main:
 - Sets up Python 3.8 environment
 - Installs dependencies
 - Runs the complete test suite
 - Prevents merging if any tests fail
 
-### 2. Test PyPI Release (`test_pypi_release.yml`)
+### 4.2. Test PyPI release (`test_pypi_release.yml`)
 Triggered when pushing tags to the dev branch:
 - Builds the package distribution
 - Runs unit tests to ensure quality
 - Publishes to Test PyPI for validation
 - Allows testing the installation process before production release
 
-### 3. Production PyPI Release (`pypi_release.yml`)
+### 4.3. Production PyPI release (`pypi_release.yml`)
 Triggered when creating a GitHub release:
 - Builds the final distribution
 - Runs comprehensive tests
 - Publishes to the main PyPI repository
 - Makes the package publicly available via `pip install`
 
-## The Benefits
+## 5. The Benefits
 
 This refactoring effort pays dividends in multiple ways:
 
-### **Reproducibility**
+### 5.1. **Reproducibility**
 Anyone can now install and use the exact same preprocessing pipeline:
 
 ```
 pip install ariel-data-preprocessing
 ```
 
-### **Reliability** 
+### 5.2. **Reliability** 
 Automated testing catches bugs before they reach production. Every code change is validated against real data.
 
-### **Maintainability**
+### 5.3. **Maintainability**
 Clean class structure with documented methods makes the code much easier to understand and modify.
 
-### **Collaboration**
+### 5.4. **Collaboration**
 Other researchers can easily build on this work, contribute improvements, or adapt the pipeline for their own projects.
 
-### **Reproducibility**
+### 5.5. **Reproducibility**
 The Ariel Data Challenge isn't just about building a working solution - it's about creating tools that the broader astronomical community can use and improve.
 
 With the preprocessing pipeline now available as a proper Python package, complete with automated testing and continuous deployment, the foundation is solid for the next phase: building machine learning models to extract exoplanet atmospheric spectra.
 
-## Next Steps
+## 6. Next steps
 
 With the infrastructure in place, the focus shifts back to science:
 
