@@ -21,7 +21,7 @@ Converting to seconds makes the timing much clearer - we can see exactly how the
 Plotting the capture timing reveals the correlated double sampling (CDS) strategy:
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/EDA/01.5-captures_over_time.jpg" alt="Instrument captures over time">
+  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/EDA/01.5.1-captures_over_time.jpg" alt="Instrument captures over time">
 </p>
 
 The pattern is clear once you know what to look for. Each instrument takes paired exposures:
@@ -38,16 +38,16 @@ Testing this on a sample planet:
 
 <div style="display: flex; justify-content: space-around; align-items: flex-start; gap: 20px; margin: 20px 0;">
   <div style="flex: 1; text-align: center;">
-    <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/EDA/01.5-uncorrected_AIRS_CDS_sample_frames.jpg" alt="AIRS CDS sample frames" style="max-width: 100%; height: auto;">
+    <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/EDA/01.5.2-uncorrected_AIRS_CDS_sample_frames.jpg" alt="AIRS CDS sample frames" style="max-width: 100%; height: auto;">
     <p style="margin-top: 10px; font-style: italic;">AIRS-CH0 CDS frames</p>
   </div>
   <div style="flex: 1; text-align: center;">
-    <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/EDA/01.5-uncorrected_FGS1_CDS_sample_frames.jpg" alt="FGS1 CDS sample frames" style="max-width: 100%; height: auto;">
+    <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/EDA/01.5.3-uncorrected_FGS1_CDS_sample_frames.jpg" alt="FGS1 CDS sample frames" style="max-width: 100%; height: auto;">
     <p style="margin-top: 10px; font-style: italic;">FGS1 CDS frames</p>
   </div>
 </div>
 
-The CDS processing works - we get positive signal values and the frame count is exactly halved. However, the raw CDS frames still show significant background noise and artifacts. This makes sense because CDS is just one step in the full calibration pipeline.
+The CDS processing works - we get positive signal values and the frame count is exactly halved. However, CDS is just one step in the full calibration pipeline.
 
 ## The Full Calibration Picture
 
@@ -66,4 +66,4 @@ CDS alone isn't enough - we need the full treatment to get clean, calibrated dat
 
 With the timing structure decoded and CDS implemented, the next priority is building out the complete signal correction pipeline. The raw data is definitely there, but it needs serious cleanup before we can reliably extract planetary spectra.
 
-The good news: the instruments are well-synchronized and the CDS strategy is working as designed. The challenge now is implementing the remaining calibration steps to turn these noisy detector outputs into science-ready data.
+The good news: the instruments are well-synchronized and the CDS strategy is working as designed. The challenge now is implementing the remaining calibration steps to turn detector outputs into science-ready data.

@@ -18,10 +18,10 @@ Following the competition organizers' guidance, here's the complete preprocessin
 
 ## Step-by-Step Results
 
-Here's how the AIRS-CH0 signal evolves through each correction step:
+Here's how the frames from both instruments evolve through each correction step:
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_correction/02.1-AIRS_signal_correction_steps.jpg" alt="AIRS signal correction pipeline steps">
+  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_correction/02.1.7-signal_correction_steps.jpg" alt="AIRS signal correction pipeline steps">
 </p>
 
 Each step addresses specific detector artifacts:
@@ -32,39 +32,16 @@ Each step addresses specific detector artifacts:
 - **CDS** subtracts the short/long exposure pairs to reduce read noise
 - **Flat fielding** normalizes pixel-to-pixel sensitivity differences
 
-## Final Results
-
-After the complete pipeline, both instruments produce much cleaner data:
-
-<div style="display: flex; justify-content: space-around; align-items: flex-start; gap: 20px; margin: 20px 0;">
-  <div style="flex: 1; text-align: center;">
-    <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_correction/02.1-corrected_AIRS_CDS_sample_frames.jpg" alt="Corrected AIRS CDS frames" style="max-width: 100%; height: auto;">
-    <p style="margin-top: 10px; font-style: italic;">Corrected AIRS-CH0 frames</p>
-  </div>
-  <div style="flex: 1; text-align: center;">
-    <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_correction/02.1-corrected_FGS1_CDS_sample_frames.jpg" alt="Corrected FGS1 CDS frames" style="max-width: 100%; height: auto;">
-    <p style="margin-top: 10px; font-style: italic;">Corrected FGS1 frames</p>
-  </div>
-</div>
-
-The masked hot/dead pixels appear as dark blobs, but the overall signal is much cleaner and more uniform.
 
 ## Transit Detection
 
-The real test: can we still see exoplanet transits after all this processing? 
+Can we still see exoplanet transits after signal correction? 
 
-<div style="display: flex; justify-content: space-around; align-items: flex-start; gap: 20px; margin: 20px 0;">
-  <div style="flex: 1; text-align: center;">
-    <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_correction/02.1-corrected_AIRS_CDS_transit.jpg" alt="Corrected AIRS transit" style="max-width: 100%; height: auto;">
-    <p style="margin-top: 10px; font-style: italic;">AIRS-CH0 total flux over time</p>
-  </div>
-  <div style="flex: 1; text-align: center;">
-    <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_correction/02.1-corrected_FGS_CDS_transit.jpg" alt="Corrected FGS transit" style="max-width: 100%; height: auto;">
-    <p style="margin-top: 10px; font-style: italic;">FGS1 total flux over time</p>
-  </div>
-</div>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_correction/02.1.9-corrected_CDS_transits.jpg" alt="AIRS signal correction pipeline steps">
+</p>
 
-Excellent! The transit signal is clearly visible in both instruments after correction. Surprisingly, the AIRS data shows the transit even more clearly than the FGS data - apparently it's a proper science instrument, not just an alignment camera.
+Excellent! The transit signal is clearly visible in both instruments after correction. Surprisingly, the AIRS data shows the transit even more clearly than the FGS data - apparently it's a proper science instrument, not just an alignment camera. We are still looking in a tiny drop in signal for both instruments during this planet's transit: ~1.5% for FGS1 and ~2.5% for AIRS-CH0.
 
 ## Performance Considerations
 
