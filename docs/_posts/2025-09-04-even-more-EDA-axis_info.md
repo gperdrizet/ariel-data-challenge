@@ -5,7 +5,7 @@ title: "Understanding Timing and CDS: Making Sense of the Axis Info"
 
 Time to dig into the timing metadata and figure out how these instruments actually work together. The axis info data turned out to be much more useful than I initially thought - it's not about satellite alignment at all, but about the structure of the signal matrices themselves.
 
-## What's in the Axis Info?
+## 1. What's in the axis info?
 
 The axis info metadata gives us the key to understanding how the telescope data is organized:
 
@@ -16,7 +16,7 @@ The axis info metadata gives us the key to understanding how the telescope data 
 
 Converting to seconds makes the timing much clearer - we can see exactly how the two instruments are synchronized.
 
-## Exposure Timing Patterns
+## 2. Exposure timing patterns
 
 Plotting the capture timing reveals the correlated double sampling (CDS) strategy:
 
@@ -30,7 +30,7 @@ The pattern is clear once you know what to look for. Each instrument takes paire
 
 The timing is deliberately offset so that the "short" exposure ends just before the "long" exposure begins. This CDS approach helps reduce read noise by subtracting the paired frames.
 
-## Implementing CDS
+## 3. Implementing CDS recovery
 
 The key insight from the timing analysis: subtract the second (long) exposure from the first (short) exposure to get the cleaned signal. This halves the number of frames but should significantly reduce noise.
 
@@ -49,9 +49,9 @@ Testing this on a sample planet:
 
 The CDS processing works - we get positive signal values and the frame count is exactly halved. However, CDS is just one step in the full calibration pipeline.
 
-## The Full Calibration Picture
+## 4. TODO: image correction/calibration
 
-The analysis confirms what the competition organizers hinted at: proper data reduction is crucial. The complete preprocessing pipeline needs to handle:
+This is only one step in the basic data preprocessing pipeline - proper data reduction is going to be crucial. The complete preprocessing pipeline needs to handle:
 
 1. **Analog-to-Digital Conversion** - Convert raw counts to physical units
 2. **Hot/Dead Pixel Masking** - Remove problematic detector pixels  
@@ -62,7 +62,7 @@ The analysis confirms what the competition organizers hinted at: proper data red
 
 CDS alone isn't enough - we need the full treatment to get clean, calibrated data suitable for exoplanet analysis.
 
-## Next Steps
+## 5. Next Steps
 
 With the timing structure decoded and CDS implemented, the next priority is building out the complete signal correction pipeline. The raw data is definitely there, but it needs serious cleanup before we can reliably extract planetary spectra.
 
