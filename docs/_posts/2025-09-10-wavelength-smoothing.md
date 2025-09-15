@@ -12,7 +12,7 @@ After signal correction and extraction, the individual frame spectra and the ove
 The solution requires intelligent smoothing that preserves real signals while reducing noise. Three different approaches were tested on the wavelength time series:
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_extraction/02.4.1-wavelength_smoothing.jpg" alt="Comparison of smoothing methods">
+  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_extraction/02.5.1-wavelength_smoothing.jpg" alt="Comparison of smoothing methods">
 </p>
 
 The comparison reveals important trade-offs:
@@ -46,7 +46,7 @@ This approach scales beautifully - it can smooth all wavelength channels simulta
 Applying the moving average smoothing to the entire extracted dataset produces remarkably clean spectral time series:
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_extraction/02.4.2-smoothed_wavelength_spectrogram.jpg" alt="Smoothed spectral time series">
+  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_extraction/02.5.2-smoothed_wavelength_spectrogram.jpg" alt="Smoothed spectral time series">
 </p>
 
 The smoothed spectrogram reveals several important features:
@@ -59,7 +59,7 @@ The smoothed spectrogram reveals several important features:
 The total signal per frame now looks even better - yes that is a scatter plot!
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_extraction/02.4.3-transit_plot_total_vs_wavelength_smoothed.jpg" alt="Smoothed spectral time series">
+  <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_extraction/02.5.3-transit_plot_total_vs_wavelength_smoothed.jpg" alt="Smoothed spectral time series">
 </p>
 
 ## 5. Parameter optimization
