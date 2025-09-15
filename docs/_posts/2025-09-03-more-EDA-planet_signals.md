@@ -3,7 +3,10 @@ layout: post
 title: "AIRS-CH0 & FGS1 signal EDA"
 ---
 
-Next up - let's take a look at some of the signal data from both instruments: FGS1 (the guidance/alignment camera) and AIRS-CH0 (the IR spectrometer),
+Next up - let's take a look at the signal data from both instruments: FGS1 (the guidance/alignment camera) and AIRS-CH0 (the IR spectrometer).
+
+- [AIRS-CH0 notebook](https://github.com/gperdrizet/ariel-data-challenge/blob/main/notebooks/01.3-AIRS_signal.ipynb) on GitHub.
+- [FGS1 notebook](https://github.com/gperdrizet/ariel-data-challenge/blob/main/notebooks/01.4-FGS1_signal.ipynb) on GitHub.
 
 ## 1. AIRS-CH0 sample frames
 

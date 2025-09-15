@@ -5,6 +5,8 @@ title: "Wavelength Smoothing: Taming Spectral Noise for Clean Time Series"
 
 With clean spectral signals extracted from the AIRS-CH0 detector rows, the next challenge emerges: individual wavelength channels are incredibly noisy. Each extracted time series shows significant frame-to-frame variations that could mask the subtle exoplanet atmospheric signals we're trying to detect. Time for some advanced noise reduction.
 
+Checkout the [wavelength smoothing notebook](https://github.com/gperdrizet/ariel-data-challenge/blob/main/notebooks/02.5-wavelength_smoothing.ipynb) on GitHub.
+
 ## 1. The noise problem
 
 After signal correction and extraction, the individual frame spectra and the overall transit signal look great. But I still have a lot of frame-to-frame noise in the individual wavelength channels.

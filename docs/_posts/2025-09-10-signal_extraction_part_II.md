@@ -5,6 +5,8 @@ title: "Signal Extraction Part II: FGS1 Data Reduction"
 
 Building on the success of AIRS-CH0 signal extraction, let's apply the same intelligent data reduction approach to the FGS1 guidance camera data. The goal is to identify and extract just the signal-bearing pixels from the 2D frames, reducing data volume while preserving the exoplanet transit signatures.
 
+Checkout the [FGS1 signal extraction notebook](https://github.com/gperdrizet/ariel-data-challenge/blob/main/notebooks/02.4-FGS_signal_extraction.ipynb) on GitHub.
+
 ## 1. FGS1 signal structure
 
 Unlike AIRS-CH0's spectral strips, FGS1 frames contain a more compact signal region that extends across both rows and columns. The signal analysis reveals a clear pattern:

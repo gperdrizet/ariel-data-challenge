@@ -5,6 +5,8 @@ title: "Signal Correction Pipeline: From Raw Counts to Science-Ready Data"
 
 Time to tackle the full signal correction pipeline! After understanding the timing structure and CDS basics, it's time to implement all six preprocessing steps to turn noisy detector outputs into clean, calibrated data suitable for exoplanet analysis.
 
+Check out the [signal correction notebook](https://github.com/gperdrizet/ariel-data-challenge/blob/main/notebooks/02.1-signal_correction.ipynb) on GitHub.
+
 ## 1. Six-Step image correction pipeline
 
 Following the competition organizers' guidance, here's the complete preprocessing workflow:
