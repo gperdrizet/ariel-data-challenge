@@ -40,12 +40,6 @@ jobs:
         run: |
           python -m unittest tests/test_signal_extraction.py
 
-      - name: Upload distributions
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-dists
-          path: dist/
-
   build-release:
     name: Build release candidate distribution
     runs-on: ubuntu-latest
