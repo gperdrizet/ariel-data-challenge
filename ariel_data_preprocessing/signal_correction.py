@@ -17,6 +17,7 @@ import pandas as pd
 from astropy.stats import sigma_clip
 
 # Internal imports
+import ariel_data_preprocessing.signal_correction_functions as correction_funcs
 from ariel_data_preprocessing.calibration_data import CalibrationData
 from ariel_data_preprocessing.utils import get_planet_list
 
@@ -202,7 +203,7 @@ class SignalCorrection:
 
         # Set downsampling indices for FGS data
         if self.downsample_fgs:
-            self.fgs_indices = self._fgs_downsamples()
+            self.fgs_indices = correction_funcs.fgs_downsamples(self.fgs_frames)
 
 
     def run(self):
@@ -364,7 +365,9 @@ class SignalCorrection:
             # Load and reshape the AIRS-CH0 data
             airs_signal = pd.read_parquet(
                 f'{planet_path}/AIRS-CH0_signal_0.parquet'
-            ).to_numpy().reshape(self.airs_frames, 32, 356)[:, :, self.cut_inf:self.cut_sup]
+            ).to_numpy().reshape(
+                self.airs_frames, 32, 356
+            )[:, :, self.cut_inf:self.cut_sup]
 
             # Convert to float64 from unit16
             airs_signal = airs_signal.astype(np.float64)
@@ -384,18 +387,18 @@ class SignalCorrection:
 
             # Step 1: ADC conversion
             if self.adc_conversion:
-                airs_signal = self._ADC_convert(airs_signal)
-                fgs_signal = self._ADC_convert(fgs_signal)
+                airs_signal = correction_funcs.ADC_convert(airs_signal, self.gain, self.offset)
+                fgs_signal = correction_funcs.ADC_convert(fgs_signal, self.gain, self.offset)
 
             # Step 2: Mask hot/dead pixels
             if self.masking:
-                airs_signal = self._mask_hot_dead(
+                airs_signal = correction_funcs.mask_hot_dead(
                     airs_signal,
                     calibration_data.dead_airs,
                     calibration_data.dark_airs
                 )
 
-                fgs_signal = self._mask_hot_dead(
+                fgs_signal = correction_funcs.mask_hot_dead(
                     fgs_signal,
                     calibration_data.dead_fgs,
                     calibration_data.dark_fgs
@@ -403,26 +406,26 @@ class SignalCorrection:
 
             # Step 3: Linearity correction
             if self.linearity_correction:
-                airs_signal = self._apply_linear_corr(
+                airs_signal = correction_funcs.apply_linear_corr(
                     calibration_data.linear_corr_airs,
                     airs_signal
                 )
 
-                fgs_signal = self._apply_linear_corr(
+                fgs_signal = correction_funcs.apply_linear_corr(
                     calibration_data.linear_corr_fgs,
                     fgs_signal
                 )
 
             # Step 4: Dark current subtraction
             if self.dark_subtraction:
-                airs_signal = self._clean_dark(
+                airs_signal = correction_funcs.clean_dark(
                     airs_signal,
                     calibration_data.dead_airs,
                     calibration_data.dark_airs,
                     calibration_data.dt_airs
                 )
 
-                fgs_signal = self._clean_dark(
+                fgs_signal = correction_funcs.clean_dark(
                     fgs_signal,
                     calibration_data.dead_fgs,
                     calibration_data.dark_fgs,
@@ -431,18 +434,18 @@ class SignalCorrection:
 
             # Step 5: Correlated Double Sampling (CDS)
             if self.cds_subtraction:
-                airs_signal = self._get_cds(airs_signal)
-                fgs_signal = self._get_cds(fgs_signal) 
+                airs_signal = correction_funcs.get_cds(airs_signal)
+                fgs_signal = correction_funcs.get_cds(fgs_signal) 
 
             # Step 6: Flat field correction
             if self.flat_field_correction:
-                airs_signal = self._correct_flat_field(
+                airs_signal = correction_funcs.correct_flat_field(
                     airs_signal,
                     calibration_data.flat_airs,
                     calibration_data.dead_airs
                 )
 
-                fgs_signal = self._correct_flat_field(
+                fgs_signal = correction_funcs.correct_flat_field(
                     fgs_signal,
                     calibration_data.flat_fgs,
                     calibration_data.dead_fgs
@@ -457,193 +460,6 @@ class SignalCorrection:
             output_queue.put(result)
 
         return True
-
-
-    def _ADC_convert(self, signal):
-        '''
-        Step 1: Convert raw detector counts to physical units.
-        
-        Applies analog-to-digital conversion correction using gain and offset
-        values from the adc_info.csv file.
-        
-        Args:
-            signal (np.ndarray): Raw detector signal
-            
-        Returns:
-            np.ndarray: ADC-corrected signal
-        '''
-        signal = signal.astype(np.float64)
-        signal /= self.gain    # Apply gain correction
-        signal += self.offset  # Apply offset correction
-
-        return signal
-
-
-    def _mask_hot_dead(self, signal, dead, dark):
-        '''
-        Step 2: Mask hot and dead pixels in the detector.
-        
-        Hot pixels are identified using sigma clipping on dark frames.
-        Dead pixels are provided in the calibration data.
-        
-        Args:
-            signal (np.ndarray): Input signal array
-            dead (np.ndarray): Dead pixel mask from calibration
-            dark (np.ndarray): Dark frame for hot pixel detection
-            
-        Returns:
-            np.ma.MaskedArray: Signal with hot/dead pixels masked
-        '''
-        # Identify hot pixels using 5-sigma clipping on dark frame
-        hot = sigma_clip(
-            dark, sigma=5, maxiters=5
-        ).mask
-        
-        # Tile masks to match signal dimensions
-        hot = np.tile(hot, (signal.shape[0], 1, 1))
-        dead = np.tile(dead, (signal.shape[0], 1, 1))
-        
-        # Apply masks to signal
-        signal = np.ma.masked_where(dead, signal)
-        signal = np.ma.masked_where(hot, signal)
-
-        return signal
-    
-
-    def _apply_linear_corr(self, linear_corr, signal):
-        '''
-        Step 3: Apply linearity correction to detector response.
-        
-        Corrects for non-linear detector response using polynomial
-        coefficients from calibration data.
-        
-        Args:
-            linear_corr (np.ndarray): Polynomial coefficients for linearity correction
-            signal (np.ndarray): Input signal array
-            
-        Returns:
-            np.ndarray: Linearity-corrected signal
-        '''
-        # Flip coefficients for correct polynomial order
-        linear_corr = np.flip(linear_corr, axis=0)
-
-        axis_one = signal.shape[1]
-        axis_two = signal.shape[2]
-        
-        # Apply polynomial correction pixel by pixel
-        for x, y in itertools.product(range(axis_one), range(axis_two)):
-            poli = np.poly1d(linear_corr[:, x, y])
-            signal[:, x, y] = poli(signal[:, x, y])
-
-        return signal
-    
-
-    def _clean_dark(self, signal, dead, dark, dt):
-        '''
-        Step 4: Subtract dark current from signal.
-        
-        Removes thermal background scaled by integration time.
-        
-        Args:
-            signal (np.ndarray): Input signal array
-            dead (np.ndarray): Dead pixel mask
-            dark (np.ndarray): Dark frame
-            dt (np.ndarray): Integration time for each frame
-            
-        Returns:
-            np.ndarray: Dark-corrected signal
-        '''
-
-        # Mask dead pixels in dark frame
-        dark = np.ma.masked_where(dead, dark)
-        dark = np.tile(dark, (signal.shape[0], 1, 1))
-
-        # Subtract scaled dark current
-        signal -= dark * dt[:, np.newaxis, np.newaxis]
-
-        return signal
-    
-
-    def _get_cds(self, signal):
-        '''
-        Step 5: Apply Correlated Double Sampling (CDS).
-        
-        Subtracts alternating exposure pairs to remove read noise.
-        This reduces the number of frames by half.
-        
-        Args:
-            signal (np.ndarray): Input signal array
-            
-        Returns:
-            np.ndarray: CDS-processed signal (half the input frames)
-        '''
-        # Subtract even frames from odd frames
-        cds = signal[1::2,:,:] - signal[::2,:,:]
-
-        return cds
-
-
-    def _correct_flat_field(self, signal, flat, dead):
-        '''
-        Step 6: Apply flat field correction.
-        
-        Normalizes pixel-to-pixel sensitivity variations using
-        flat field calibration data.
-        
-        Args:
-            signal (np.ndarray): Input signal array
-            flat (np.ndarray): Flat field frame
-            dead (np.ndarray): Dead pixel mask
-            
-        Returns:
-            np.ndarray: Flat field corrected signal
-        '''
-        # Transpose flat field to match signal orientation
-        signal = signal.transpose(0, 2, 1)
-        flat = flat.transpose(1, 0)
-        dead = dead.transpose(1, 0)
-        
-        # Mask dead pixels in flat field
-        flat = np.ma.masked_where(dead, flat)
-        flat = np.tile(flat, (signal.shape[0], 1, 1))
-        
-        # Apply flat field correction
-        signal = signal / flat
-
-        return signal.transpose(0, 2, 1)
-
-
-    def _fgs_downsamples(self):
-        '''
-        Generate downsampling indices for FGS signal to match AIRS cadence.
-        
-        Creates an index array for downsampling FGS1 data from 135,000 frames
-        to match the AIRS-CH0 frame rate. Preserves the correlated double sampling
-        (CDS) structure by taking frame pairs at regular intervals.
-        
-        Downsampling Strategy:
-            - Take every 24th frame pair (frames n and n+1)
-            - Reduces data volume by ~83% (135k → 22.5k frames)
-            - Maintains temporal alignment with AIRS-CH0 observations
-            - Preserves CDS structure for proper noise reduction
-        
-        Returns:
-            np.ndarray: Sorted array of frame indices to extract from FGS data
-            
-        Example:
-            For n=24, generates indices: [0, 1, 24, 25, 48, 49, ...]
-            This creates pairs for CDS while dramatically reducing data volume.
-        '''
-        n = 24  # Take 2 elements, skip 20
-        indices_to_take = np.arange(0, self.fgs_frames, n)  # Start from 0, step by n
-        indices_to_take = np.concatenate([  # Add the next index
-            indices_to_take,
-            indices_to_take + 1
-        ])
-
-        indices_to_take = np.sort(indices_to_take).astype(int)
-
-        return indices_to_take
     
 
     def _save_corrected_data(self, output_queue):
