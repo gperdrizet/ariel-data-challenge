@@ -5,6 +5,7 @@ import os
 
 # Third party imports
 import numpy as np
+import numpy.ma as ma
 import h5py
 
 
@@ -60,6 +61,7 @@ class SignalExtraction:
             self,
             input_data_path: str,
             output_data_path: str,
+            output_filename: str = None,
             inclusion_threshold: float = 0.75,
             smooth: bool = True,
             smoothing_window: int = 200,
@@ -98,6 +100,7 @@ class SignalExtraction:
 
         self.input_data_path = input_data_path
         self.output_data_path = output_data_path
+        self.output_filename = output_filename
         self.inclusion_threshold = inclusion_threshold
         self.smooth = smooth
         self.smoothing_window = smoothing_window
@@ -109,9 +112,14 @@ class SignalExtraction:
         # Make sure output directory exists
         os.makedirs(self.output_data_path, exist_ok=True)
 
-        # Remove hdf5 files from previous runs
-        filename = (f'{self.output_data_path}/train.h5')
+        # Set output filename
+        if self.output_filename is not None:
+            filename = (f'{self.output_data_path}/{self.output_filename}')
+
+        else:
+            filename = (f'{self.output_data_path}/train.h5')
         
+        # Remove hdf5 file, if it already exists
         try:
             os.remove(filename)
 
