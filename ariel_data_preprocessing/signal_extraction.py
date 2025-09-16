@@ -8,6 +8,9 @@ import numpy as np
 import numpy.ma as ma
 import h5py
 
+# Internal imports
+from ariel_data_preprocessing.utils import get_planet_list, load_masked_frames
+
 
 class SignalExtraction:
     '''
@@ -131,7 +134,7 @@ class SignalExtraction:
             pass
 
         # Get planet list from input data
-        self.planet_list = self._get_planet_list()
+        self.planet_list = get_planet_list(self.input_data)
 
         if self.n_planets != -1:
             self.planet_list = self.planet_list[:self.n_planets]
@@ -181,20 +184,12 @@ class SignalExtraction:
         with h5py.File(self.input_data, 'r') as hdf:
             for planet in self.planet_list:
 
-                # Load AIRS frames & apply mask
-                airs_frames = hdf[planet]['AIRS-CH0_signal'][:]
-                airs_mask = hdf[planet]['AIRS-CH0_mask'][:]
-                airs_frames = ma.MaskedArray(airs_frames, mask=airs_mask)
-
-                # Extract AIRS signal
+                # Load AIRS frames & extract signal
+                airs_frames = load_masked_frames(hdf, planet, 'AIRS-CH0')
                 airs_signal = self._extract_airs_signal(airs_frames)
 
-                # Load FGS frames & apply mask
-                fgs_frames = hdf[planet]['FGS1_signal'][:]
-                fgs_mask = hdf[planet]['FGS1_mask'][:]
-                fgs_frames = ma.MaskedArray(fgs_frames, mask=fgs_mask)
-
-                # Extract FGS signal
+                # Load FGS frames & extract signal
+                fgs_frames = load_masked_frames(hdf, planet, 'FGS1')
                 fgs_signal = self._extract_fgs_signal(fgs_frames)
 
                 # Combine the AIRS and FGS signals
@@ -212,15 +207,8 @@ class SignalExtraction:
                 with h5py.File(output_file, 'a') as out_hdf:
 
                     planet_group = out_hdf.require_group(planet)
-
-                    planet_group.create_dataset(
-                        'signal',
-                        data=signal.data
-                    )
-                    planet_group.create_dataset(
-                        'mask',
-                        data=signal.mask
-                    )
+                    planet_group.create_dataset('signal', data=signal.data)
+                    planet_group.create_dataset('mask', data=signal.mask[0])
 
 
     def _extract_airs_signal(self, frames: np.ndarray) -> np.ndarray:
@@ -288,29 +276,6 @@ class SignalExtraction:
         signal = np.sum(signal, axis=1)
 
         return signal
-
-
-    def _get_planet_list(self) -> list:
-        '''
-        Retrieve the list of planet IDs from the input HDF5 file.
-
-        Scans the HDF5 input file to identify all available planet groups
-        for processing during signal extraction.
-
-        Parameters:
-            None
-
-        Returns:
-            list: List of planet ID strings found in the input HDF5 file
-
-        Raises:
-            IOError: If input HDF5 file cannot be opened or read
-        '''
-
-        with h5py.File(self.input_data, 'r') as hdf:
-            planet_list = list(hdf.keys())
-
-        return planet_list
 
 
     def _select_top_rows(self, frames: np.ndarray, inclusion_threshold: float) -> list:

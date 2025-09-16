@@ -18,6 +18,7 @@ from astropy.stats import sigma_clip
 
 # Internal imports
 from ariel_data_preprocessing.calibration_data import CalibrationData
+from ariel_data_preprocessing.utils import get_planet_list
 
 
 class SignalCorrection:
@@ -133,6 +134,7 @@ class SignalCorrection:
             - n_cpus (int, default=1): Number of CPU cores for parallel processing
             - n_planets (int, default=-1): Number of planets to process (-1 for all)
             - downsample_fgs (bool, default=False): Enable FGS1 downsampling to match AIRS cadence
+            - compress_output (bool, default=False): Enable compression for HDF5 output datasets
             
         Raises:
             ValueError: If input_data_path or output_data_path are None
@@ -179,6 +181,7 @@ class SignalCorrection:
         self.n_cpus = n_cpus
         self.n_planets = n_planets
         self.downsample_fgs = downsample_fgs
+        self.compress_output = compress_output
 
         if input_data_path is None or output_data_path is None:
             raise ValueError("Input and output data paths must be provided.")
@@ -201,7 +204,7 @@ class SignalCorrection:
             pass
 
         # Get planet list from input data
-        self.planet_list = self._get_planet_list()
+        self.planet_list = get_planet_list(self.input_data_path)
 
         if self.n_planets != -1:
             self.planet_list = self.planet_list[:self.n_planets]
@@ -617,22 +620,6 @@ class SignalCorrection:
         signal = signal / flat
 
         return signal.transpose(0, 2, 1)
-
-
-    def _get_planet_list(self):
-        '''
-        Retrieve list of unique planet IDs from input data.
-        
-        Scans the input data directory to identify all unique
-        planet identifiers for processing.
-        
-        Returns:
-            list: List of unique planet IDs
-        '''
-
-        planets = list(os.listdir(f'{self.input_data_path}/train'))
-
-        return [planet_path.split('/')[-1] for planet_path in planets]
 
 
     def _fgs_downsamples(self):
