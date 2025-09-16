@@ -59,7 +59,7 @@ class TestSignalCorrection(unittest.TestCase):
 
         with h5py.File(f'{self.output_data_path}/train.h5', 'r') as hdf:
 
-            self.assertEqual(len(hdf[self.planet]), 2)
+            self.assertEqual(len(hdf[self.planet]), 4)
             self.assertTrue('AIRS-CH0_signal' in hdf[self.planet])
             self.assertTrue('FGS1_signal' in hdf[self.planet])
             self.assertTrue(hdf[self.planet]['AIRS-CH0_signal'].shape[0] == self.airs_signal.shape[0]//2)
