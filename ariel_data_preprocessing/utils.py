@@ -40,18 +40,26 @@ def get_planet_list(input_data: str):
             return planets
 
 
-def load_masked_frames(hdf: h5py.File, planet: str, instrument: None) -> ma.MaskedArray:
+def load_masked_frames(
+        hdf: h5py.File,
+        planet: str,
+        instrument: str = None
+) -> ma.MaskedArray:
     '''
     Load the masked frames for a given planet and instrument from the HDF5 file.
 
     Parameters:
         hdf (h5py.File): Open HDF5 file object
-        planet (str): Planet ID string
+        planet (str): Planet ID string, or 'random' for a random planet
         instrument (str): Instrument ID string (e.g., 'AIRS-CH0', 'FGS1')
 
     Returns:
         np.ma.MaskedArray: Masked array representing the mask for the planet
     '''
+
+    if planet == 'random':
+        planet = np.random.choice(list(hdf.keys()))
+
     if len(hdf[planet]) == 4:
 
         if instrument not in ['AIRS-CH0', 'FGS1']:
