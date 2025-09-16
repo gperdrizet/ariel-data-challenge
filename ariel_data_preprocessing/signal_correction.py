@@ -72,18 +72,19 @@ class SignalCorrection:
         - Science-ready data for downstream analysis
         - Output structure:
 
-            HDF5 file structure:
+            train.h5:
+            │
             ├── planet_id_1/
-            │   ├── AIRS-CH0_signal       # Corrected spectrometer data
-            │   ├── AIRS-CH0_signal_mask  # Mask for spectrometer data
-            │   ├── FGS1_signal           # Corrected guidance camera data
-            │   └── FGS1_signal_mask      # Mask for guidance camera data
+            │   ├── AIRS-CH0_signal  # Corrected spectrometer data
+            │   ├── AIRS-CH0_mask    # Mask for spectrometer data
+            │   ├── FGS1_signal      # Corrected guidance camera data
+            │   └── FGS1_mask        # Mask for guidance camera data
             |
             ├── planet_id_2/
-            │   ├── AIRS-CH0_signal       # Corrected spectrometer data
-            │   ├── AIRS-CH0_signal_mask  # Mask for spectrometer data
-            │   ├── FGS1_signal           # Corrected guidance camera data
-            │   └── FGS1_signal_mask      # Mask for guidance camera data
+            │   ├── AIRS-CH0_signal  # Corrected spectrometer data
+            │   ├── AIRS-CH0_mask    # Mask for spectrometer data
+            │   ├── FGS1_signal      # Corrected guidance camera data
+            │   └── FGS1_mask        # Mask for guidance camera data
             |
             └── ...
     '''
@@ -139,22 +140,21 @@ class SignalCorrection:
 
             HDF5 file containing corrected signals organized by planet:
 
-                train.h5
-                |
-                ├── planet_1
-                |   ├── AIRS-CH0_signal
-                │   └── FGS1_signal
-                │
-                ├── planet_1
-                |   ├── AIRS-CH0_signal
-                │   └── FGS1_signal
-                │
-                .
-                .
-                .
-                └── planet_n
-                    ├── AIRS-CH0_signal
-                    └── FGS1_signal
+            train.h5:
+            │
+            ├── planet_id_1/
+            │   ├── AIRS-CH0_signal  # Corrected spectrometer data
+            │   ├── AIRS-CH0_mask    # Mask for spectrometer data
+            │   ├── FGS1_signal      # Corrected guidance camera data
+            │   └── FGS1_mask        # Mask for guidance camera data
+            |
+            ├── planet_id_2/
+            │   ├── AIRS-CH0_signal  # Corrected spectrometer data
+            │   ├── AIRS-CH0_mask    # Mask for spectrometer data
+            │   ├── FGS1_signal      # Corrected guidance camera data
+            │   └── FGS1_mask        # Mask for guidance camera data
+            |
+            └── ...
         '''
         
         if input_data_path is None or output_data_path is None:

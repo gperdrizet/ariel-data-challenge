@@ -92,9 +92,13 @@ class SignalExtraction:
                 train.h5
                 |
                 ├── planet_1/
-                │   └── signal  # Shape: (n_frames, n_wavelengths)
+                │   ├── signal  # Shape: (n_frames, n_wavelengths)
+                │   └── mask    # Shape: (n_frames, n_wavelengths)
+                │
                 ├── planet_2/
-                │   └── signal
+                │   ├── signal  # Shape: (n_frames, n_wavelengths)
+                │   └── mask    # Shape: (n_frames, n_wavelengths)
+                │
                 └── ...
         '''
 
@@ -181,33 +185,26 @@ class SignalExtraction:
                 airs_frames = hdf[planet]['AIRS-CH0_signal'][:]
                 airs_mask = hdf[planet]['AIRS-CH0_mask'][:]
                 airs_frames = ma.MaskedArray(airs_frames, mask=airs_mask)
-                print(f'Processing planet {planet} with AIRS frames shape {airs_frames.shape}')
 
                 # Extract AIRS signal
                 airs_signal = self._extract_airs_signal(airs_frames)
-                print(f'Extracted AIRS signal for {planet} with shape {airs_signal.shape}')
 
                 # Load FGS frames & apply mask
                 fgs_frames = hdf[planet]['FGS1_signal'][:]
                 fgs_mask = hdf[planet]['FGS1_mask'][:]
                 fgs_frames = ma.MaskedArray(fgs_frames, mask=fgs_mask)
-                print(f'Processing planet {planet} with FGS frames shape {fgs_frames.shape}')
 
                 # Extract FGS signal
                 fgs_signal = self._extract_fgs_signal(fgs_frames)
-                print(f'Extracted FGS signal for {planet} with shape {fgs_signal.shape}')
 
                 # Combine the AIRS and FGS signals
                 signal = np.insert(airs_signal, 0, fgs_signal, axis=1)
-                print(f'Combined signal shape for {planet}: {signal.shape}')
-                print(f'Combined signal dtype for {planet}: {type(signal)}')
 
                 # Smooth each wavelength across the frames
                 if self.smooth:
                     signal = self.moving_average_rows(
                         signal, self.smoothing_window
                     )
-                    print(f'Smoothed signal shape for {planet}: {signal.shape}')
 
                 # Save the extracted signal to HDF5
                 output_file = f'{self.output_data_path}/train.h5'
@@ -254,8 +251,6 @@ class SignalExtraction:
             self.inclusion_threshold
         )
 
-        print(f'Top airs rows shape: {np.array(top_rows).shape}')
-
         # Get the top rows for each frame
         signal_strip = frames[:, top_rows, :]
 
@@ -281,9 +276,6 @@ class SignalExtraction:
             frames,
             self.inclusion_threshold
         )
-
-        print(f'Top fgs rows shape: {np.array(top_rows).shape}')
-        print(f'Top fgs cols shape: {np.array(top_cols).shape}')
 
         # Now index the original array to get the top rows for each frame
         signal_strip = frames[:, top_rows, :]
