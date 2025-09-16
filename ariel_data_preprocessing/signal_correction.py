@@ -216,6 +216,9 @@ class SignalCorrection:
         if self.downsample_fgs:
             self.fgs_indices = self._fgs_downsamples()
 
+        # Import tables if needed
+        if self.compress_output:
+            import tables
 
     def run(self):
         '''
@@ -739,28 +742,28 @@ class SignalCorrection:
                             _ = planet_group.create_dataset(
                                 'AIRS-CH0_signal',
                                 data=airs_signal.data,
-                                compression='blosc',
+                                compression='gzip',
                                 compression_opts=9
                             )
 
                             _ = planet_group.create_dataset(
                                 'AIRS-CH0_mask',
                                 data=airs_signal.mask[0],
-                                compression='blosc',
+                                compression='gzip',
                                 compression_opts=9
                             )
 
                             _ = planet_group.create_dataset(
                                 'FGS1_signal',
                                 data=fgs_signal.data,
-                                compression='blosc',
+                                compression='gzip',
                                 compression_opts=9
                             )
 
                             _ = planet_group.create_dataset(
                                 'FGS1_mask',
                                 data=fgs_signal.mask[0],
-                                compression='blosc',
+                                compression='gzip',
                                 compression_opts=9)
                         else:
                             
