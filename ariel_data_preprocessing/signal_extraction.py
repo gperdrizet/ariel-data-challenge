@@ -14,33 +14,16 @@ from ariel_data_preprocessing.utils import get_planet_list, load_masked_frames
 
 class SignalExtraction:
     '''
-    Extract clean spectral signals from corrected AIRS-CH0 telescope data.
+    Extract clean spectral signals from corrected FGS1 and AIRS-CH0 telescope data.
 
     This class processes corrected AIRS-CH0 frames to extract 1D spectral time series
-    suitable for exoplanet atmospheric analysis. The extraction focuses on detector
-    rows with the strongest signals and applies optional smoothing to reduce noise.
-
-    The pipeline transforms 3D AIRS frames (time, detector_rows, wavelengths) into
-    clean 2D spectral time series (time, wavelengths) by intelligently selecting
-    and combining the most informative detector rows.
-
-    Key Features:
-        - Adaptive row selection based on signal strength thresholds
-        - Optional moving average smoothing for noise reduction
-        - Batch processing of multiple planets
-        - HDF5 input/output for efficient large dataset handling
-        - Configurable processing parameters
-
-    Typical Workflow:
-        1. Load corrected AIRS-CH0 data from signal correction pipeline
-        2. Analyze first frame to identify high-signal detector rows
-        3. Extract and sum selected rows for each frame
-        4. Apply optional smoothing across wavelengths
-        5. Save extracted spectra for downstream analysis
+    and the FGS1 frames to extract a single value per frame. The extraction recovers
+    detector rows (AIRS-CH0) and/or columns (FGS1) with the strongest signals defined
+    by a user supplied threshold and applies optional smoothing to reduce noise.
 
     Example:
         >>> extractor = SignalExtraction(
-        ...     input_data_path='data/corrected',
+        ...     input_data='data/corrected',
         ...     output_data_path='data/extracted',
         ...     inclusion_threshold=0.8,
         ...     smooth=True,
@@ -48,93 +31,102 @@ class SignalExtraction:
         ... )
         >>> output_file = extractor.run()
 
-    Input Requirements:
-        - HDF5 file with corrected AIRS-CH0 data from signal correction pipeline
-        - Data structure: /planet_id/AIRS-CH0_signal with shape (frames, rows, wavelengths)
+    Input Requirements: HDF5 file with corrected FGS1 and AIRS-CH0 data from the signal
+    correction pipeline. Input structure:
 
-    Output:
-        - HDF5 file with extracted spectral time series
-        - Data structure: /planet_id/AIRS-CH0_signal with shape (frames, wavelengths)
+        train.h5:
+        │
+        ├── planet_id_1/
+        │   ├── AIRS-CH0_signal  # Corrected spectrometer data
+        │   ├── AIRS-CH0_mask    # Mask for spectrometer data
+        │   ├── FGS1_signal      # Corrected guidance camera data
+        │   └── FGS1_mask        # Mask for guidance camera data
+        |
+        ├── planet_id_2/
+        │   ├── AIRS-CH0_signal  # Corrected spectrometer data
+        │   ├── AIRS-CH0_mask    # Mask for spectrometer data
+        │   ├── FGS1_signal      # Corrected guidance camera data
+        │   └── FGS1_mask        # Mask for guidance camera data
+        |
+        └── ...
 
-    Author: Ariel Data Challenge Team
-    Version: 1.0
+    Output: HDF5 file with extracted and combined spectral time series (FGS1 signal as 
+    first column). Output Structure:
+            
+        train.h5
+        |
+        ├── planet_1/
+        │   ├── signal  # Shape: (n_frames, n_wavelengths + 1)
+        │   └── mask    # Shape: (n_wavelengths + 1,)
+        │
+        ├── planet_2/
+        │   ├── signal  # Shape: (n_frames, n_wavelengths + 1)
+        │   └── mask    # Shape: (n_wavelengths + 1,)
+        │
+        └── ...
     '''
 
     def __init__(
             self,
-            input_data: str,
-            output_data_path: str,
-            output_filename: str = None,
+            input_data_path: str = None,
+            output_data_path: str = None,
+            input_filename: str = 'train.h5',
+            output_filename: str = 'train.h5',
             inclusion_threshold: float = 0.75,
             smooth: bool = True,
             smoothing_window: int = 200,
-            n_planets: int = -1
+            n_planets: int = -1,
+            verbose: bool = False
     ):
         '''
         Initialize the SignalExtraction class with processing parameters.
 
         Parameters:
-            input_data_path (str): filepath to HDF5 file with corrected data
-            output_data_path (str): Path to directory for extracted signal output
-            inclusion_threshold (float, default=0.75): Threshold for selecting spectral rows 
-                based on signal strength. Value between 0 and 1, where higher values select fewer
-                rows with stronger signals
-            smooth (bool, default=True): Whether to apply moving average smoothing to the 
-                extracted signals
-            smoothing_window (int, default=200): Size of the moving average window for smoothing.
-                Only used if smooth=True
-            n_planets (int, default=-1): Number of planets to process. If -1, processes all 
-                available planets
+            - input_data_path (str): Path to HDF5 input file
+            - output_data_path (str): Path to directory for extracted signal output
+            - input_filename (str, default=train.h5): Optional custom filename for input HDF5 file
+            - output_filename (str, default=train.h5): Optional custom filename for output HDF5 file
+            - inclusion_threshold (float, default=0.75): Threshold for selecting spectral rows 
+            - smooth (bool, default=True): Apply moving average smoothing per wavelength
+            - smoothing_window (int, default=200): Moving average window for smoothing
+            - n_planets (int, default=-1): Number of planets to process. -1 = processes all
+            - verbose (bool, default=False): If True, print planet progress counter
 
         Raises:
-            ValueError: If input_data_path or output_data_path are None
-
-        Output Structure:
-            HDF5 file containing extracted signals organized by planet:
-            
-                train.h5
-                |
-                ├── planet_1/
-                │   ├── signal  # Shape: (n_frames, n_wavelengths)
-                │   └── mask    # Shape: (n_frames, n_wavelengths)
-                │
-                ├── planet_2/
-                │   ├── signal  # Shape: (n_frames, n_wavelengths)
-                │   └── mask    # Shape: (n_frames, n_wavelengths)
-                │
-                └── ...
+            ValueError: If input_data or output_data_path are None
         '''
 
-        self.input_data = input_data
+        self.input_data_path = input_data_path
+        self.input_filename = input_filename
         self.output_data_path = output_data_path
         self.output_filename = output_filename
         self.inclusion_threshold = inclusion_threshold
         self.smooth = smooth
         self.smoothing_window = smoothing_window
         self.n_planets = n_planets
+        self.verbose = verbose
 
-        if input_data is None or output_data_path is None:
+        if input_data_path is None or output_data_path is None:
             raise ValueError("Input data and output data path must be provided.")
 
         # Make sure output directory exists
         os.makedirs(self.output_data_path, exist_ok=True)
 
-        # Set output filename
-        if self.output_filename is not None:
-            filename = (f'{self.output_data_path}/{self.output_filename}')
-
-        else:
-            filename = (f'{self.output_data_path}/train.h5')
+        # Set output filepath
+        self.output_filepath = (f'{self.output_data_path}/{self.output_filename}')
         
-        # Remove hdf5 file, if it already exists
+        # Remove hdf5 output file, if it already exists
         try:
-            os.remove(filename)
+            os.remove(self.output_filepath)
 
         except OSError:
             pass
 
+        # Set input filepath
+        self.input_filepath = f'{self.input_data_path}/{self.input_filename}'
+        
         # Get planet list from input data
-        self.planet_list = get_planet_list(self.input_data)
+        self.planet_list = get_planet_list(self.input_filepath)
 
         if self.n_planets != -1:
             self.planet_list = self.planet_list[:self.n_planets]
@@ -144,44 +136,25 @@ class SignalExtraction:
         '''
         Run the complete signal extraction pipeline.
 
-        This method processes corrected AIRS-CH0 data to extract spectral signals by:
-        1. Loading AIRS frames from HDF5 input file
+        This method processes corrected AIRS-CH0 and FGS1 data to extract spectral signals by:
+        1. Loading AIRS-CH0 frames from HDF5 input file
         2. Selecting spectral rows with strongest signals based on inclusion threshold
         3. Summing selected rows to create 1D spectrum per frame
-        4. Applying optional smoothing with moving average
-        5. Saving extracted signals to HDF5 output file
+        4. Loading FGS1 frames and extracting signal blocks
+        5. Combining AIRS-CH0 and FGS1 signals (FGS1 signal inserted as first column)
+        6. Applying optional smoothing with moving average
+        7. Saving extracted signals to HDF5 output file
 
         Processing is applied to all planets specified during initialization.
 
         Parameters:
             None (uses instance attributes set during initialization)
-
-        Returns:
-            str: Path to the output HDF5 file containing extracted signals
-
-        Output Structure:
-            HDF5 file with groups for each planet:
-
-                train.h5
-                |
-                ├── planet_1
-                |   ├── AIRS-CH0_signal
-                │   └── FGS1_signal
-                │
-                ├── planet_1
-                |   ├── AIRS-CH0_signal
-                │   └── FGS1_signal
-                │
-                .
-                .
-                .
-                └── planet_n
-                    ├── AIRS-CH0_signal
-                    └── FGS1_signal
         '''
 
+        planet_counter = 0
+
         # Open HDF5 input
-        with h5py.File(self.input_data, 'r') as hdf:
+        with h5py.File(self.input_filepath, 'r') as hdf:
             for planet in self.planet_list:
 
                 # Load AIRS frames & extract signal
@@ -202,13 +175,15 @@ class SignalExtraction:
                     )
 
                 # Save the extracted signal to HDF5
-                output_file = f'{self.output_data_path}/train.h5'
-
-                with h5py.File(output_file, 'a') as out_hdf:
+                with h5py.File(self.output_filepath, 'a') as out_hdf:
 
                     planet_group = out_hdf.require_group(planet)
                     planet_group.create_dataset('signal', data=signal.data)
                     planet_group.create_dataset('mask', data=signal.mask[0])
+
+                if self.verbose:
+                    planet_counter += 1
+                    print(f'Extracted signal for planet {planet_counter} of {len(self.planet_list)}', end='\r')
 
 
     def _extract_airs_signal(self, frames: np.ndarray) -> np.ndarray:
@@ -250,7 +225,24 @@ class SignalExtraction:
 
     def _extract_fgs_signal(self, frames: np.ndarray) -> np.ndarray:
         '''
-        Extract spectral signal from 3D FGS frames.
+        Extract 1D signal from 3D FGS frames using 2D block extraction.
+
+        This method processes FGS frames to extract a clean 1D signal time series by
+        selecting both detector rows and columns with the strongest signals, creating
+        a 2D signal block that is then summed to produce a single value per frame.
+
+        Parameters:
+            frames (np.ndarray): Input FGS frames with shape (n_frames, n_rows, n_columns)
+
+        Returns:
+            np.ndarray: Extracted 1D signal with shape (n_frames,)
+
+        Algorithm:
+            1. Identify top detector rows using _select_top_rows()
+            2. Identify top detector columns using _select_top_cols()
+            3. Extract the intersection (signal block) from all frames
+            4. Sum the signal block for each frame to get single value
+            5. Return the resulting 1D array of shape (n_frames,)
         '''
 
         # Select top rows based on inclusion threshold
@@ -337,7 +329,7 @@ class SignalExtraction:
             list: List of integer column indices that exceed the signal threshold
 
         Algorithm:
-            1. Sum pixel values across wavelengths for each column in first frame
+            1. Sum pixel values across columns for each row in first frame
             2. Normalize sums to 0-1 range by subtracting minimum
             3. Calculate threshold as fraction of signal range
             4. Select columns where signal exceeds threshold
@@ -378,9 +370,16 @@ class SignalExtraction:
 
         Algorithm:
             Uses cumulative sum method for efficient O(n_rows * n_columns) computation:
-            1. Calculate cumulative sum along columns
-            2. Use sliding window difference to get window sums
-            3. Divide by window size to get averages
+            1. Transpose the array to operate on columns
+            2. Calculate cumulative sum along columns
+            3. Use sliding window difference to get window sums
+            4. Divide by window size to get averages
+            5. Transpose back to original orientation
+
+        Example:
+            >>> data = np.array([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
+            >>> moving_average_rows(data, 3)
+            array([[2., 3., 4.], [7., 8., 9.]])
         '''
 
         # Transpose the array to operate on rows

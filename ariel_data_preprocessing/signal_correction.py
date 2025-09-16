@@ -65,6 +65,21 @@ class SignalCorrection:
         - Calibration data (dark, dead, flat, linearity correction files)
         - ADC conversion parameters
         - Axis info metadata for timing
+        - Input structure:
+
+            train/                            # Generated plots and visualizations
+            └── 1010375142                    # Planets - 1100 numbered directories
+                ├── AIRS-CH0_calibration_0/   # Calibration data
+                │   ├── dark.parquet          # Exposure with closed shutter
+                │   ├── dead.parquet          # Dead or hot pixels
+                │   ├── flat.parquet          # Uniform illuminated surface
+                │   ├── linear_corr.parquet   # Correction for nonlinear response
+                │   └── read.parquet          # Detector read noise
+                │
+                ├── FGS1_calibration_0/       # Same set of calibration files
+                ├── AIRS-CH0_signal_0.parquet # Image data for observation 0
+                └── FGS1_signal_0.parquet     # Image data for observation 0
+
     
     Output:
         - HDF5 file with corrected AIRS-CH0 and FGS1 signals and hot/dead pixel masks
@@ -94,13 +109,13 @@ class SignalCorrection:
             self,
             input_data_path: str = None,
             output_data_path: str = None,
+            output_filename: str = 'train.h5',
             adc_conversion: bool = True,
             masking: bool = True,
             linearity_correction: bool = True,
             dark_subtraction: bool = True,
             cds_subtraction: bool = True,
             flat_field_correction: bool = True,
-            output_filename: str = None,
             fgs_frames: int = 135000,
             airs_frames: int = 11250,
             cut_inf: int = 39,
@@ -140,26 +155,6 @@ class SignalCorrection:
             
         Raises:
             ValueError: If input_data_path or output_data_path are None
-            
-        Output Structure:
-
-            HDF5 file containing corrected signals organized by planet:
-
-            train.h5:
-            │
-            ├── planet_id_1/
-            │   ├── AIRS-CH0_signal  # Corrected spectrometer data
-            │   ├── AIRS-CH0_mask    # Mask for spectrometer data
-            │   ├── FGS1_signal      # Corrected guidance camera data
-            │   └── FGS1_mask        # Mask for guidance camera data
-            |
-            ├── planet_id_2/
-            │   ├── AIRS-CH0_signal  # Corrected spectrometer data
-            │   ├── AIRS-CH0_mask    # Mask for spectrometer data
-            │   ├── FGS1_signal      # Corrected guidance camera data
-            │   └── FGS1_mask        # Mask for guidance camera data
-            |
-            └── ...
         '''
         
         if input_data_path is None or output_data_path is None:
@@ -186,22 +181,15 @@ class SignalCorrection:
         self.compress_output = compress_output
         self.verbose = verbose
 
-        if input_data_path is None or output_data_path is None:
-            raise ValueError("Input and output data paths must be provided.")
-
         # Make sure output directory exists
         os.makedirs(self.output_data_path, exist_ok=True)
 
-        # Set output filename
-        if self.output_filename is not None:
-            filename = (f'{self.output_data_path}/{self.output_filename}')
-
-        else:
-            filename = (f'{self.output_data_path}/train.h5')
+        # Set output filepath
+        self.output_filepath = (f'{self.output_data_path}/{self.output_filename}')
         
-        # Remove hdf5 file, if it already exists
+        # Remove output hdf5 file, if it already exists
         try:
-            os.remove(filename)
+            os.remove(self.output_filepath)
 
         except OSError:
             pass
@@ -216,9 +204,6 @@ class SignalCorrection:
         if self.downsample_fgs:
             self.fgs_indices = self._fgs_downsamples()
 
-        # Import tables if needed
-        if self.compress_output:
-            import tables
 
     def run(self):
         '''
@@ -684,31 +669,12 @@ class SignalCorrection:
         Returns:
             bool: True when all data has been saved and workers terminated
             
-        Output Format:
-            HDF5 file structure:
-            ├── planet_id_1/
-            │   ├── AIRS-CH0_signal       # Corrected spectrometer data
-            │   ├── AIRS-CH0_signal_mask  # Mask for spectrometer data
-            │   ├── FGS1_signal           # Corrected guidance camera data
-            │   └── FGS1_signal_mask      # Mask for guidance camera data
-            |
-            ├── planet_id_2/
-            │   ├── AIRS-CH0_signal       # Corrected spectrometer data
-            │   ├── AIRS-CH0_signal_mask  # Mask for spectrometer data
-            │   ├── FGS1_signal           # Corrected guidance camera data
-            │   └── FGS1_signal_mask      # Mask for guidance camera data
-            |
-            └── ...
-            
         Error Handling:
             - Catches and reports TypeError exceptions during HDF5 writing
             - Continues processing even if individual planet saves fail
             - Provides diagnostic information for failed save operations
         '''
         
-        # File path for hdf5 output
-        output_file = (f'{self.output_data_path}/train.h5')
-
         # Stop signal handler
         stop_count = 0
 
@@ -729,7 +695,7 @@ class SignalCorrection:
                 airs_signal = result['airs_signal']
                 fgs_signal = result['fgs_signal']
 
-                with h5py.File(output_file, 'a') as hdf:
+                with h5py.File(self.output_filepath, 'a') as hdf:
 
                     try:
 
@@ -775,7 +741,7 @@ class SignalCorrection:
                         output_count += 1
 
                         if self.verbose:
-                            print(f'Finished planet {output_count} of {len(self.planet_list)}', end='\r')
+                            print(f'Corrected signal for planet {output_count} of {len(self.planet_list)}', end='\r')
 
                     except TypeError as e:
                         print(f'Error writing data for planet {planet}: {e}')
