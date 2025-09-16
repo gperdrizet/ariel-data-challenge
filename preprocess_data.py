@@ -1,4 +1,4 @@
-'''Main runner for the signal correction % data extraction pipeline.'''
+'''Main runner for the signal correction & data extraction pipeline.'''
 
 import ariel_data_preprocessing.signal_correction as sc
 import ariel_data_preprocessing.signal_extraction as se
@@ -10,8 +10,9 @@ if __name__ == '__main__':
         output_data_path='data/signal_corrected',
         output_filename='train.h5',  # Specify the output filename here
         n_cpus=10,
-        n_planets=-1,
-        downsample_fgs=True
+        n_planets=10,
+        downsample_fgs=True,
+        verbose=True
     )
 
     signal_correction.run()
@@ -21,7 +22,7 @@ if __name__ == '__main__':
         output_data_path='data/extracted',
         output_filename='train.h5',  # Specify the output filename here
         inclusion_threshold=0.9,
-        n_planets=-1,
+        n_planets=10,
     )
 
     signal_extraction.run()

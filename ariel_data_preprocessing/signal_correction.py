@@ -111,6 +111,7 @@ class SignalCorrection:
             n_planets: int = -1,
             downsample_fgs: bool = False,
             compress_output: bool = False,
+            verbose: bool = False
     ):
         '''
         Initialize the SignalCorrection class with processing parameters.
@@ -135,6 +136,7 @@ class SignalCorrection:
             - n_planets (int, default=-1): Number of planets to process (-1 for all)
             - downsample_fgs (bool, default=False): Enable FGS1 downsampling to match AIRS cadence
             - compress_output (bool, default=False): Enable compression for HDF5 output datasets
+            - verbose (bool, default=False): Enable progress counter output
             
         Raises:
             ValueError: If input_data_path or output_data_path are None
@@ -182,6 +184,7 @@ class SignalCorrection:
         self.n_planets = n_planets
         self.downsample_fgs = downsample_fgs
         self.compress_output = compress_output
+        self.verbose = verbose
 
         if input_data_path is None or output_data_path is None:
             raise ValueError("Input and output data paths must be provided.")
@@ -706,6 +709,9 @@ class SignalCorrection:
         # Stop signal handler
         stop_count = 0
 
+        # Track progress
+        output_count = 0
+
         while True:
             result = output_queue.get()
 
@@ -762,6 +768,11 @@ class SignalCorrection:
                             _ = planet_group.create_dataset('AIRS-CH0_mask',data=airs_signal.mask[0])
                             _ = planet_group.create_dataset('FGS1_signal',data=fgs_signal.data)
                             _ = planet_group.create_dataset('FGS1_mask',data=fgs_signal.mask[0])
+
+                        output_count += 1
+
+                        if self.verbose:
+                            print(f'Finished planet {output_count} of {len(self.planet_list)}', end='\r')
 
                     except TypeError as e:
                         print(f'Error writing data for planet {planet}: {e}')
