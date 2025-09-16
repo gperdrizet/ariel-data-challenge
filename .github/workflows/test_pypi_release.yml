@@ -68,6 +68,12 @@ jobs:
         run: |
           python -m build
 
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+
   testpypi-publish:
     name: Publish release candidate to TestPyPI
     runs-on: ubuntu-latest
