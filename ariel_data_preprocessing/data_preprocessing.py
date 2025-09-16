@@ -6,7 +6,6 @@ correlated double sampling (CDS), and flat field correction.
 '''
 
 # Standard library imports
-import itertools
 import os
 from multiprocessing import Manager, Process
 
@@ -14,15 +13,15 @@ from multiprocessing import Manager, Process
 import h5py
 import numpy as np
 import pandas as pd
-from astropy.stats import sigma_clip
 
 # Internal imports
 import ariel_data_preprocessing.signal_correction_functions as correction_funcs
+import ariel_data_preprocessing.signal_extraction_functions as extraction_funcs
 from ariel_data_preprocessing.calibration_data import CalibrationData
 from ariel_data_preprocessing.utils import get_planet_list
 
 
-class SignalCorrection:
+class DataProcessor:
     '''
     Complete signal correction and calibration pipeline for Ariel telescope data.
     
@@ -123,6 +122,9 @@ class SignalCorrection:
             cut_sup: int = 321,
             gain: float = 0.4369,
             offset: float = -1000.0,
+            inclusion_threshold: float = 0.75,
+            smooth: bool = True,
+            smoothing_window: int = 200,
             n_cpus: int = 1,
             n_planets: int = -1,
             downsample_fgs: bool = False,
@@ -174,6 +176,9 @@ class SignalCorrection:
         self.airs_frames = airs_frames
         self.gain = gain
         self.offset = offset
+        self.inclusion_threshold = inclusion_threshold
+        self.smooth = smooth
+        self.smoothing_window = smoothing_window
         self.cut_inf = cut_inf
         self.cut_sup = cut_sup
         self.n_cpus = n_cpus
@@ -259,7 +264,7 @@ class SignalCorrection:
 
             worker_processes.append(
                 Process(
-                    target=self.correct_signal,
+                    target=self.process_data,
                     args=(input_queue, output_queue)
                 )
             )
@@ -295,7 +300,7 @@ class SignalCorrection:
         output_process.close()
 
 
-    def correct_signal(self, input_queue, output_queue):
+    def process_data(self, input_queue, output_queue):
         '''
         Worker process function that applies the complete signal correction pipeline.
         
@@ -338,10 +343,10 @@ class SignalCorrection:
             if planet == 'STOP':
                 result = {
                     'planet': 'STOP',
-                    'airs_signal': None,
-                    'fgs_signal': None
+                    'signal': None,
                 }
                 output_queue.put(result)
+
                 break
 
             # Get path to this planet's data
@@ -451,10 +456,29 @@ class SignalCorrection:
                     calibration_data.dead_fgs
                 )
 
+            # Step 7: Extract signal
+            airs_signal = extraction_funcs.extract_airs_signal(
+                airs_signal,
+                inclusion_threshold=self.inclusion_threshold
+            )
+
+            fgs_signal = extraction_funcs.extract_fgs_signal(
+                fgs_signal,
+                inclusion_threshold=self.inclusion_threshold
+            )
+
+            # Step 8: Combine AIRS-CH0 and FGS1 signals
+            signal = np.insert(airs_signal, 0, fgs_signal, axis=1)
+            
+            # Step 9: Smooth each wavelength across the frames
+            if self.smooth:
+                signal = extraction_funcs.moving_average_rows(
+                    signal, self.smoothing_window
+                )
+
             result = {
                 'planet': planet,
-                'airs_signal': airs_signal,
-                'fgs_signal': fgs_signal
+                'signal': signal
             }
 
             output_queue.put(result)
@@ -480,7 +504,7 @@ class SignalCorrection:
         
         Parameters:
             output_queue (multiprocessing.Queue): Queue containing corrected signal data
-                Expected format: {'planet': str, 'airs_signal': ndarray, 'fgs_signal': ndarray}
+                Expected format: {'planet': str, 'signal': ndarray}
                 
         Returns:
             bool: True when all data has been saved and workers terminated
@@ -508,8 +532,7 @@ class SignalCorrection:
 
             else:
                 planet = result['planet']
-                airs_signal = result['airs_signal']
-                fgs_signal = result['fgs_signal']
+                signal = result['signal']
 
                 with h5py.File(self.output_filepath, 'a') as hdf:
 
@@ -518,46 +541,36 @@ class SignalCorrection:
                         # Create groups for this planet
                         planet_group = hdf.require_group(planet)
 
-                        # Create datasets for AIRS-CH0 and FGS1 signals
+                        # Write signals and masks
                         if self.compress_output:
 
                             _ = planet_group.create_dataset(
-                                'AIRS-CH0_signal',
-                                data=airs_signal.data,
+                                'signal',
+                                data=signal.data,
                                 compression='gzip',
                                 compression_opts=9
                             )
 
                             _ = planet_group.create_dataset(
-                                'AIRS-CH0_mask',
-                                data=airs_signal.mask[0],
+                                'mask',
+                                data=signal.mask[0],
                                 compression='gzip',
                                 compression_opts=9
                             )
 
-                            _ = planet_group.create_dataset(
-                                'FGS1_signal',
-                                data=fgs_signal.data,
-                                compression='gzip',
-                                compression_opts=9
-                            )
-
-                            _ = planet_group.create_dataset(
-                                'FGS1_mask',
-                                data=fgs_signal.mask[0],
-                                compression='gzip',
-                                compression_opts=9)
                         else:
-                            
-                            _ = planet_group.create_dataset('AIRS-CH0_signal',data=airs_signal.data)
-                            _ = planet_group.create_dataset('AIRS-CH0_mask',data=airs_signal.mask[0])
-                            _ = planet_group.create_dataset('FGS1_signal',data=fgs_signal.data)
-                            _ = planet_group.create_dataset('FGS1_mask',data=fgs_signal.mask[0])
+                            _ = planet_group.create_dataset(
+                                'signal',data=signal.data
+                            )
+                            _ = planet_group.create_dataset(
+                                'mask',data=signal.mask[0]
+                            )
+
 
                         output_count += 1
 
                         if self.verbose:
-                            print(f'Corrected signal for planet {output_count} of {len(self.planet_list)}', end='\r')
+                            print(f'Processed signal for planet {output_count} of {len(self.planet_list)}', end='\r')
 
                     except TypeError as e:
                         print(f'Error writing data for planet {planet}: {e}')
