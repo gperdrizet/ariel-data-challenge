@@ -1,14 +1,18 @@
 '''Unittests for signal correction class'''
 
+# Standard library imports
 import unittest
 
+# Third-party imports
 import numpy as np
 import pandas as pd
 import h5py
 
-from ariel_data_preprocessing.signal_correction import SignalCorrection
+# Internal imports
 from ariel_data_preprocessing.calibration_data import CalibrationData
+from ariel_data_preprocessing.signal_correction import SignalCorrection
 from ariel_data_preprocessing.utils import get_planet_list
+import ariel_data_preprocessing.signal_correction_functions as correction_funcs
 
 class TestSignalCorrection(unittest.TestCase):
 
@@ -82,15 +86,19 @@ class TestSignalCorrection(unittest.TestCase):
         self.assertEqual(planet_list[0], '342072318')
 
 
-    def test_adc_conversion(self):
+    def test_adc_conversion(self,):
         '''Test ADC conversion'''
 
-        corrected_airs = self.signal_correction._ADC_convert(
-            self.airs_signal
+        corrected_airs = correction_funcs.ADC_convert(
+            self.airs_signal,
+            self.signal_correction.gain,
+            self.signal_correction.offset
         )
 
-        corrected_fgs = self.signal_correction._ADC_convert(
-            self.fgs_signal
+        corrected_fgs = correction_funcs.ADC_convert(
+            self.fgs_signal,
+            self.signal_correction.gain,
+            self.signal_correction.offset
         )
 
         self.assertTrue(corrected_airs.shape == self.airs_signal.shape)
@@ -100,13 +108,13 @@ class TestSignalCorrection(unittest.TestCase):
     def test_mask_hot_dead(self):
         '''Test hot/dead pixel masking'''
 
-        masked_airs = self.signal_correction._mask_hot_dead(
+        masked_airs = correction_funcs.mask_hot_dead(
             self.airs_signal,
             self.calibration_data.dead_airs,
             self.calibration_data.dark_airs
         )
 
-        masked_fgs = self.signal_correction._mask_hot_dead(
+        masked_fgs = correction_funcs.mask_hot_dead(
             self.fgs_signal,
             self.calibration_data.dead_fgs,
             self.calibration_data.dark_fgs
@@ -121,12 +129,12 @@ class TestSignalCorrection(unittest.TestCase):
     def test_linear_correction(self):
         '''Test linearity correction'''
 
-        corrected_airs = self.signal_correction._apply_linear_corr(
+        corrected_airs = correction_funcs.apply_linear_corr(
             self.calibration_data.linear_corr_airs,
             self.airs_signal
         )
 
-        corrected_fgs = self.signal_correction._apply_linear_corr(
+        corrected_fgs = correction_funcs.apply_linear_corr(
             self.calibration_data.linear_corr_fgs,
             self.fgs_signal
         )
@@ -138,14 +146,14 @@ class TestSignalCorrection(unittest.TestCase):
     def test_dark_subtraction(self):
         '''Test dark frame subtraction'''
 
-        dark_subtracted_airs = self.signal_correction._clean_dark(
+        dark_subtracted_airs = correction_funcs.clean_dark(
             self.airs_signal.astype(np.float64),
             self.calibration_data.dead_airs,
             self.calibration_data.dark_airs,
             self.calibration_data.dt_airs
         )
 
-        dark_subtracted_fgs = self.signal_correction._clean_dark(
+        dark_subtracted_fgs = correction_funcs.clean_dark(
             self.fgs_signal.astype(np.float64),
             self.calibration_data.dead_fgs,
             self.calibration_data.dark_fgs,
@@ -159,11 +167,11 @@ class TestSignalCorrection(unittest.TestCase):
     def test_cds_subtraction(self):
         '''Test CDS subtraction'''
 
-        cds_airs = self.signal_correction._get_cds(
+        cds_airs = correction_funcs.get_cds(
             self.airs_signal
         )
 
-        cds_fgs = self.signal_correction._get_cds(
+        cds_fgs = correction_funcs.get_cds(
             self.fgs_signal
         )
 
@@ -174,13 +182,13 @@ class TestSignalCorrection(unittest.TestCase):
     def test_flat_field_correction(self):
         '''Test flat field correction'''
 
-        flat_corrected_airs = self.signal_correction._correct_flat_field(
+        flat_corrected_airs = correction_funcs.correct_flat_field(
             self.airs_signal,
             self.calibration_data.flat_airs,
             self.calibration_data.dead_airs
         )
 
-        flat_corrected_fgs = self.signal_correction._correct_flat_field(
+        flat_corrected_fgs = correction_funcs.correct_flat_field(
             self.fgs_signal,
             self.calibration_data.flat_fgs,
             self.calibration_data.dead_fgs
