@@ -27,6 +27,7 @@ from ariel-data-preprocessing.signal_correction import SignalCorrection
 signal_correction = SignalCorrection(
     input_data_path='data/raw',
     output_data_path='data/corrected',
+    output_filename='train.h5',
     n_planets=10
 )
 

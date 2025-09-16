@@ -71,7 +71,7 @@ class SignalCorrection:
         - Reduced data volume (50% reduction from CDS, optional 83% FGS reduction)
         - Science-ready data for downstream analysis
         - Output structure:
-        
+
             HDF5 file structure:
             ├── planet_id_1/
             │   ├── AIRS-CH0_signal       # Corrected spectrometer data
@@ -98,6 +98,7 @@ class SignalCorrection:
             dark_subtraction: bool = True,
             cds_subtraction: bool = True,
             flat_field_correction: bool = True,
+            output_filename: str = None,
             fgs_frames: int = 135000,
             airs_frames: int = 11250,
             cut_inf: int = 39,
@@ -120,6 +121,7 @@ class SignalCorrection:
             - dark_subtraction (bool, default=True): Enable dark current subtraction
             - cds_subtraction (bool, default=True): Enable correlated double sampling
             - flat_field_correction (bool, default=True): Enable flat field normalization
+            - output_filename (str, default=None): Name of output HDF5 file
             - fgs_frames (int, default=135000): Expected number of FGS1 frames per planet
             - airs_frames (int, default=11250): Expected number of AIRS-CH0 frames per planet
             - cut_inf (int, default=39): Lower bound for AIRS spectral cropping
@@ -166,6 +168,7 @@ class SignalCorrection:
         self.dark_subtraction = dark_subtraction
         self.cds_subtraction = cds_subtraction
         self.flat_field_correction = flat_field_correction
+        self.output_filename = output_filename
         self.fgs_frames = fgs_frames
         self.airs_frames = airs_frames
         self.gain = gain
@@ -180,7 +183,11 @@ class SignalCorrection:
         os.makedirs(self.output_data_path, exist_ok=True)
 
         # Remove hdf5 files from previous runs
-        filename = (f'{self.output_data_path}/train.h5')
+        if self.output_filename is not None:
+            filename = (f'{self.output_data_path}/{self.output_filename}')
+
+        else:
+            filename = (f'{self.output_data_path}/train.h5')
         
         try:
             os.remove(filename)
@@ -228,7 +235,7 @@ class SignalCorrection:
             None (uses instance configuration from __init__)
             
         Returns:
-            None (writes output to self.output_data_path/train.h5)
+            None (writes output to output_data_path/output_filename)
             
         Side Effects:
             - Creates/overwrites output HDF5 file
@@ -729,14 +736,16 @@ class SignalCorrection:
                         planet_group = hdf.require_group(planet)
 
                         # Create datasets for AIRS-CH0 and FGS1 signals
-                        _ = planet_group.create_dataset('AIRS-CH0_signal', data=airs_signal)
-                        _ = planet_group.create_dataset('FGS1_signal', data=fgs_signal)
+                        _ = planet_group.create_dataset('AIRS-CH0_signal', data=airs_signal.data)
+                        _ = planet_group.create_dataset('AIRS-CH0_mask', data=airs_signal.mask)
+                        _ = planet_group.create_dataset('FGS1_signal', data=fgs_signal.data)
+                        _ = planet_group.create_dataset('FGS1_mask', data=fgs_signal.mask)
 
-                        # Save the corrected signals
-                        planet_group['AIRS-CH0_signal'][:] = airs_signal.data
-                        planet_group['AIRS-CH0_signal_mask'][:] = airs_signal.mask
-                        planet_group['FGS1_signal'][:] = fgs_signal.data
-                        planet_group['FGS1_signal_mask'][:] = fgs_signal.mask
+                        # # Save the corrected signals
+                        # planet_group['AIRS-CH0_signal'][:] = airs_signal.data
+                        # planet_group['AIRS-CH0_mask'][:] = airs_signal.mask
+                        # planet_group['FGS1_signal'][:] = fgs_signal.data
+                        # planet_group['FGS1_mask'][:] = fgs_signal.mask
 
                     except TypeError as e:
                         print(f'Error writing data for planet {planet}: {e}')
