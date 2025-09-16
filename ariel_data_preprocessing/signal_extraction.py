@@ -59,7 +59,7 @@ class SignalExtraction:
 
     def __init__(
             self,
-            input_data_path: str,
+            input_data: str,
             output_data_path: str,
             output_filename: str = None,
             inclusion_threshold: float = 0.75,
@@ -71,7 +71,7 @@ class SignalExtraction:
         Initialize the SignalExtraction class with processing parameters.
 
         Parameters:
-            input_data_path (str): Path to directory containing corrected signal data
+            input_data_path (str): filepath to HDF5 file with corrected data
             output_data_path (str): Path to directory for extracted signal output
             inclusion_threshold (float, default=0.75): Threshold for selecting spectral rows 
                 based on signal strength. Value between 0 and 1, where higher values select fewer
@@ -92,13 +92,13 @@ class SignalExtraction:
                 train.h5
                 |
                 ├── planet_1/
-                │   └── AIRS-CH0_signal  # Shape: (n_frames, n_wavelengths)
+                │   └── signal  # Shape: (n_frames, n_wavelengths)
                 ├── planet_2/
-                │   └── AIRS-CH0_signal
+                │   └── signal
                 └── ...
         '''
 
-        self.input_data_path = input_data_path
+        self.input_data = input_data
         self.output_data_path = output_data_path
         self.output_filename = output_filename
         self.inclusion_threshold = inclusion_threshold
@@ -106,8 +106,8 @@ class SignalExtraction:
         self.smoothing_window = smoothing_window
         self.n_planets = n_planets
 
-        if input_data_path is None or output_data_path is None:
-            raise ValueError("Input and output data paths must be provided.")
+        if input_data is None or output_data_path is None:
+            raise ValueError("Input data and output data path must be provided.")
 
         # Make sure output directory exists
         os.makedirs(self.output_data_path, exist_ok=True)
@@ -133,7 +133,7 @@ class SignalExtraction:
             self.planet_list = self.planet_list[:self.n_planets]
 
 
-    def run(self):
+    def run(self) -> None:
         '''
         Run the complete signal extraction pipeline.
 
@@ -177,27 +177,30 @@ class SignalExtraction:
         with h5py.File(f'{self.input_data_path}/train.h5', 'r') as hdf:
             for planet in self.planet_list:
 
-                # Load AIRS frames
+                # Load AIRS frames & apply mask
                 airs_frames = hdf[planet]['AIRS-CH0_signal'][:]
+                airs_mask = hdf[planet]['AIRS-CH0_mask'][:]
+                airs_frames = ma.MaskedArray(airs_frames, mask=airs_mask)
 
-                # Select top rows based on inclusion threshold
-                top_rows = self._select_top_rows(
-                    airs_frames,
-                    self.inclusion_threshold
-                )
+                # Extract AIRS signal
+                airs_signal = self._extract_airs_signal(airs_frames)
 
-                # Get the top rows for each frame
-                signal_strip = airs_frames[:, top_rows, :]
+                # Load FGS frames & apply mask
+                fgs_frames = hdf[planet]['FGS1_signal'][:]
+                fgs_mask = hdf[planet]['FGS1_mask'][:]
+                fgs_frames = ma.MaskedArray(fgs_frames, mask=fgs_mask)
 
-                # Sum the selected rows in each frame and transpose
-                airs_signal = np.transpose(np.sum(signal_strip, axis=1))
+                # Extract FGS signal
+                fgs_signal = self._extract_fgs_signal(fgs_frames)
+
+                # Combine the AIRS and FGS signals
+                signal = np.concatenate((fgs_signal, airs_signal), axis=1)
 
                 # Smooth each wavelength across the frames
                 if self.smooth:
-                    airs_signal = self.moving_average_rows(airs_signal, self.smoothing_window)
-
-                # Transpose the data back to (frames, wavelengths)
-                airs_signal = np.transpose(airs_signal)
+                    signal = self.moving_average_rows(
+                        signal, self.smoothing_window
+                    )
 
                 # Save the extracted signal to HDF5
                 output_file = f'{self.output_data_path}/train.h5'
@@ -207,11 +210,77 @@ class SignalExtraction:
                     planet_group = out_hdf.require_group(planet)
 
                     planet_group.create_dataset(
-                        'AIRS-CH0_signal',
-                        data=airs_signal
+                        'signal',
+                        data=signal
                     )
 
-        return output_file
+
+    def _extract_airs_signal(self, frames: np.ndarray) -> np.ndarray:
+        '''
+        Extract 1D spectral signal from 3D AIRS frames.
+
+        This method processes a stack of AIRS frames to extract a clean 1D spectral
+        time series by selecting detector rows with the strongest signals based on
+        the inclusion threshold. The selected rows are summed for each frame to
+        produce the final spectrum.
+
+        Parameters:
+            frames (np.ndarray): Input AIRS frames with shape (n_frames, n_rows, n_wavelengths)
+
+        Returns:
+            np.ndarray: Extracted 2D spectral signal with shape (n_frames, n_wavelengths)
+
+        Algorithm:
+            1. Identify top detector rows using _select_top_rows()
+            2. Extract these rows from all frames
+            3. Sum the selected rows for each frame
+            4. Return the resulting 2D array of shape (n_frames, n_wavelengths)
+        '''
+
+        # Select top rows based on inclusion threshold
+        top_rows = self._select_top_rows(
+            frames,
+            self.inclusion_threshold
+        )
+
+        # Get the top rows for each frame
+        signal_strip = frames[:, top_rows, :]
+
+        # Sum the selected rows in each frame and transpose
+        signal = np.sum(signal_strip, axis=1)
+
+        return signal
+
+
+    def _extract_fgs_signal(self, frames: np.ndarray) -> np.ndarray:
+        '''
+        Extract spectral signal from 3D FGS frames.
+        '''
+
+        # Select top rows based on inclusion threshold
+        top_rows = self._select_top_rows(
+            frames,
+            self.inclusion_threshold
+        )
+
+        # Select top columns based on inclusion threshold
+        top_cols = self._select_top_cols(
+            frames,
+            self.inclusion_threshold
+        )
+
+        # Now index the original array to get the top rows for each frame
+        signal_strip = frames[:, top_rows[1], :]
+
+        # And then the top columns for each frame
+        signal_block = signal_strip[:, :, top_cols[1]]
+
+        # Sum the block per frame
+        signal = np.sum(signal_block, axis=1)
+        signal = np.sum(signal, axis=1)
+
+        return signal
+
 
     def _get_planet_list(self) -> list:
         '''
@@ -238,17 +307,17 @@ class SignalExtraction:
 
     def _select_top_rows(self, frames: np.ndarray, inclusion_threshold: float) -> list:
         '''
-        Select spectral rows with strongest signals based on threshold criteria.
+        Select detector pixel rows with strongest signals based on threshold criteria.
 
         Analyzes the first frame to identify detector rows with the highest signal
         levels, using the inclusion threshold to determine which rows contribute
-        significantly to the spectrum. This focuses extraction on the most
+        significantly to the signal. This focuses extraction on the most
         informative parts of the detector array.
 
         Parameters:
-            frames (np.ndarray): Input AIRS frames with shape (n_frames, n_rows, n_wavelengths)
+            frames (np.ndarray): Input AIRS frames with shape (n_frames, n_rows, n_columns)
             inclusion_threshold (float): Threshold value between 0-1 for row selection.
-                                       Higher values select fewer rows with stronger signals.
+                Higher values select fewer rows with stronger signals.
 
         Returns:
             list: List of integer row indices that exceed the signal threshold
@@ -276,6 +345,47 @@ class SignalExtraction:
         # Return the indices of the selected rows
         return selected_rows.tolist()
 
+
+    def _select_top_cols(self, frames: np.ndarray, inclusion_threshold: float) -> list:
+        '''
+        Select columns with strongest signal based on threshold criteria.
+
+        Analyzes the first frame to identify detector columns with the highest signal
+        levels, using the inclusion threshold to determine which columns contribute
+        significantly to the signal. This focuses extraction on the most
+        informative parts of the detector array.
+
+        Parameters:
+            frames (np.ndarray): Input frames with shape (n_frames, n_rows, n_columns)
+            inclusion_threshold (float): Threshold value between 0-1 for column selection.
+                Higher values select fewer columns with stronger signals.
+
+        Returns:
+            list: List of integer column indices that exceed the signal threshold
+
+        Algorithm:
+            1. Sum pixel values across wavelengths for each column in first frame
+            2. Normalize sums to 0-1 range by subtracting minimum
+            3. Calculate threshold as fraction of signal range
+            4. Select columns where signal exceeds threshold
+        '''
+
+        # Sum the first frame's columns
+        col_sums = np.sum(frames[0], axis=0)
+
+        # Shift the sums so the minimum is zero
+        col_sums -= np.min(col_sums)
+        signal_range = np.max(col_sums)
+        
+        # Determine the threshold for inclusion
+        threshold = inclusion_threshold * signal_range
+
+        # Select columns where the sum exceeds the threshold
+        selected_cols = np.where(col_sums >= threshold)[0]
+
+        # Return the indices of the selected rows
+        return selected_cols.tolist()
+
     
     @staticmethod
     def moving_average_rows(a, n):
@@ -300,6 +410,9 @@ class SignalExtraction:
             3. Divide by window size to get averages
         '''
 
+        # Transpose the array to operate on rows
+        a = np.transpose(a)
+
         # Compute cumulative sum along axis 1 (across columns)
         cumsum_vec = np.cumsum(a, axis=1, dtype=float)
 
@@ -307,4 +420,9 @@ class SignalExtraction:
         cumsum_vec[:, n:] = cumsum_vec[:, n:] - cumsum_vec[:, :-n]
         
         # Return the average for each window, starting from the (n-1)th element
-        return cumsum_vec[:, n - 1:] / n
+        a = cumsum_vec[:, n - 1:] / n
+
+        # Transpose back to original orientation
+        a = np.transpose(a)
+
+        return a
