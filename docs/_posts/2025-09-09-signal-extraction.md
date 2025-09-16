@@ -5,6 +5,8 @@ title: "Signal Extraction: From 3D Spectrograms to 1D Time Series"
 
 With the signal correction pipeline delivering clean, calibrated data, it's time to tackle the next challenge: extracting meaningful spectral signals from the AIRS-CH0 frames. The goal is to transform bulky 3D arrays into a focused 1D time series that capture the wavelength signals over time for each star.
 
+Checkout the [AIRS-CH0 signal extraction notebook](https://github.com/gperdrizet/ariel-data-challenge/blob/main/notebooks/02.3-AIRS_signal_extraction.ipynb) on GitHub
+
 ## 1. The challenge
 
 After signal correction, each planet's AIRS-CH0 data consists of thousands of frames, each containing a 32×282 pixel spectrogram. But here's the key insight: not all detector pixels contain useful signal. The spectral data is concentrated in just a few rows where the dispersed starlight creates a distinct spectral trace.

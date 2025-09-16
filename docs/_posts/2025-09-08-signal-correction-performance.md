@@ -5,6 +5,8 @@ title: "Performance Optimization: Making the Pipeline Kaggle-Ready"
 
 The signal correction pipeline works beautifully, but there's one small problem: it takes forever to run. With 1100 planets to process and a 9-hour runtime limit on Kaggle submission notebooks, we needed some serious performance optimization. Time to make this thing fast.
 
+Checkout the full [benchmarking notebook](https://github.com/gperdrizet/ariel-data-challenge/blob/main/notebooks/02.2-signal_correction_optimization.ipynb) on GitHub.
+
 ## 1. The performance challenge
 
 Initial testing revealed a harsh reality: just signal correcting the full dataset would take longer than the competition's 9-hour runtime limit on Kaggle notebooks. We needed two key optimizations:

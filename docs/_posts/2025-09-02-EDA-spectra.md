@@ -5,6 +5,8 @@ title: "Project Introduction & Initial EDA"
 
 Welcome to my exploration of the [Ariel Data Challenge 2025](https://www.kaggle.com/competitions/ariel-data-challenge-2025)! This Kaggle competition presents a fascinating problem: extracting planetary atmospheric spectra from simulated space telescope observations.
 
+Checkout the [spectra EDA notebook](https://github.com/gperdrizet/ariel-data-challenge/blob/main/notebooks/01.2-EDA_ground_truth_spectra.ipynb) on GitHub.
+
 ## 1. The Challenge
 
 The Ariel space mission, scheduled to launch in 2029, will study the atmospheres of approximately 1000 exoplanets through transit spectroscopy. This competition gives us a taste of what that data analysis will look like, complete with realistic instrumental noise, calibration challenges, and systematic effects.

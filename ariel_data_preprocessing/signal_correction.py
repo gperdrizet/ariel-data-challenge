@@ -18,6 +18,7 @@ from astropy.stats import sigma_clip
 
 # Internal imports
 from ariel_data_preprocessing.calibration_data import CalibrationData
+from ariel_data_preprocessing.utils import get_planet_list
 
 
 class SignalCorrection:
@@ -64,17 +65,51 @@ class SignalCorrection:
         - Calibration data (dark, dead, flat, linearity correction files)
         - ADC conversion parameters
         - Axis info metadata for timing
+        - Input structure:
+
+            train/                            # Generated plots and visualizations
+            └── 1010375142                    # Planets - 1100 numbered directories
+                ├── AIRS-CH0_calibration_0/   # Calibration data
+                │   ├── dark.parquet          # Exposure with closed shutter
+                │   ├── dead.parquet          # Dead or hot pixels
+                │   ├── flat.parquet          # Uniform illuminated surface
+                │   ├── linear_corr.parquet   # Correction for nonlinear response
+                │   └── read.parquet          # Detector read noise
+                │
+                ├── FGS1_calibration_0/       # Same set of calibration files
+                ├── AIRS-CH0_signal_0.parquet # Image data for observation 0
+                └── FGS1_signal_0.parquet     # Image data for observation 0
+
     
     Output:
-        - HDF5 file with corrected AIRS-CH0 and FGS1 signals
+        - HDF5 file with corrected AIRS-CH0 and FGS1 signals and hot/dead pixel masks
+        - Organized by planet ID for easy access
         - Reduced data volume (50% reduction from CDS, optional 83% FGS reduction)
         - Science-ready data for downstream analysis
+        - Output structure:
+
+            train.h5:
+            │
+            ├── planet_id_1/
+            │   ├── AIRS-CH0_signal  # Corrected spectrometer data
+            │   ├── AIRS-CH0_mask    # Mask for spectrometer data
+            │   ├── FGS1_signal      # Corrected guidance camera data
+            │   └── FGS1_mask        # Mask for guidance camera data
+            |
+            ├── planet_id_2/
+            │   ├── AIRS-CH0_signal  # Corrected spectrometer data
+            │   ├── AIRS-CH0_mask    # Mask for spectrometer data
+            │   ├── FGS1_signal      # Corrected guidance camera data
+            │   └── FGS1_mask        # Mask for guidance camera data
+            |
+            └── ...
     '''
 
     def __init__(
             self,
             input_data_path: str = None,
             output_data_path: str = None,
+            output_filename: str = 'train.h5',
             adc_conversion: bool = True,
             masking: bool = True,
             linearity_correction: bool = True,
@@ -89,7 +124,9 @@ class SignalCorrection:
             offset: float = -1000.0,
             n_cpus: int = 1,
             n_planets: int = -1,
-            downsample_fgs: bool = False
+            downsample_fgs: bool = False,
+            compress_output: bool = False,
+            verbose: bool = False
     ):
         '''
         Initialize the SignalCorrection class with processing parameters.
@@ -103,6 +140,7 @@ class SignalCorrection:
             - dark_subtraction (bool, default=True): Enable dark current subtraction
             - cds_subtraction (bool, default=True): Enable correlated double sampling
             - flat_field_correction (bool, default=True): Enable flat field normalization
+            - output_filename (str, default=None): Name of output HDF5 file
             - fgs_frames (int, default=135000): Expected number of FGS1 frames per planet
             - airs_frames (int, default=11250): Expected number of AIRS-CH0 frames per planet
             - cut_inf (int, default=39): Lower bound for AIRS spectral cropping
@@ -112,30 +150,11 @@ class SignalCorrection:
             - n_cpus (int, default=1): Number of CPU cores for parallel processing
             - n_planets (int, default=-1): Number of planets to process (-1 for all)
             - downsample_fgs (bool, default=False): Enable FGS1 downsampling to match AIRS cadence
+            - compress_output (bool, default=False): Enable compression for HDF5 output datasets
+            - verbose (bool, default=False): Enable progress counter output
             
         Raises:
             ValueError: If input_data_path or output_data_path are None
-            
-        Output Structure:
-
-            HDF5 file containing corrected signals organized by planet:
-
-                train.h5
-                |
-                ├── planet_1
-                |   ├── AIRS-CH0_signal
-                │   └── FGS1_signal
-                │
-                ├── planet_1
-                |   ├── AIRS-CH0_signal
-                │   └── FGS1_signal
-                │
-                .
-                .
-                .
-                └── planet_n
-                    ├── AIRS-CH0_signal
-                    └── FGS1_signal
         '''
         
         if input_data_path is None or output_data_path is None:
@@ -149,6 +168,7 @@ class SignalCorrection:
         self.dark_subtraction = dark_subtraction
         self.cds_subtraction = cds_subtraction
         self.flat_field_correction = flat_field_correction
+        self.output_filename = output_filename
         self.fgs_frames = fgs_frames
         self.airs_frames = airs_frames
         self.gain = gain
@@ -158,21 +178,24 @@ class SignalCorrection:
         self.n_cpus = n_cpus
         self.n_planets = n_planets
         self.downsample_fgs = downsample_fgs
+        self.compress_output = compress_output
+        self.verbose = verbose
 
         # Make sure output directory exists
         os.makedirs(self.output_data_path, exist_ok=True)
 
-        # Remove hdf5 files from previous runs
-        filename = (f'{self.output_data_path}/train.h5')
+        # Set output filepath
+        self.output_filepath = (f'{self.output_data_path}/{self.output_filename}')
         
+        # Remove output hdf5 file, if it already exists
         try:
-            os.remove(filename)
+            os.remove(self.output_filepath)
 
         except OSError:
             pass
 
         # Get planet list from input data
-        self.planet_list = self._get_planet_list()
+        self.planet_list = get_planet_list(self.input_data_path)
 
         if self.n_planets != -1:
             self.planet_list = self.planet_list[:self.n_planets]
@@ -211,7 +234,7 @@ class SignalCorrection:
             None (uses instance configuration from __init__)
             
         Returns:
-            None (writes output to self.output_data_path/train.h5)
+            None (writes output to output_data_path/output_filename)
             
         Side Effects:
             - Creates/overwrites output HDF5 file
@@ -590,22 +613,6 @@ class SignalCorrection:
         return signal.transpose(0, 2, 1)
 
 
-    def _get_planet_list(self):
-        '''
-        Retrieve list of unique planet IDs from input data.
-        
-        Scans the input data directory to identify all unique
-        planet identifiers for processing.
-        
-        Returns:
-            list: List of unique planet IDs
-        '''
-
-        planets = list(os.listdir(f'{self.input_data_path}/train'))
-
-        return [planet_path.split('/')[-1] for planet_path in planets]
-
-
     def _fgs_downsamples(self):
         '''
         Generate downsampling indices for FGS signal to match AIRS cadence.
@@ -662,27 +669,17 @@ class SignalCorrection:
         Returns:
             bool: True when all data has been saved and workers terminated
             
-        Output Format:
-            HDF5 file structure:
-            ├── planet_id_1/
-            │   ├── AIRS-CH0_signal  # Corrected spectrometer data
-            │   └── FGS1_signal      # Corrected guidance camera data
-            ├── planet_id_2/
-            │   ├── AIRS-CH0_signal
-            │   └── FGS1_signal
-            └── ...
-            
         Error Handling:
             - Catches and reports TypeError exceptions during HDF5 writing
             - Continues processing even if individual planet saves fail
             - Provides diagnostic information for failed save operations
         '''
         
-        # File path for hdf5 output
-        output_file = (f'{self.output_data_path}/train.h5')
-
         # Stop signal handler
         stop_count = 0
+
+        # Track progress
+        output_count = 0
 
         while True:
             result = output_queue.get()
@@ -698,20 +695,53 @@ class SignalCorrection:
                 airs_signal = result['airs_signal']
                 fgs_signal = result['fgs_signal']
 
-                with h5py.File(output_file, 'a') as hdf:
+                with h5py.File(self.output_filepath, 'a') as hdf:
 
                     try:
 
-                        # Create groups for this planet if not existing
+                        # Create groups for this planet
                         planet_group = hdf.require_group(planet)
 
                         # Create datasets for AIRS-CH0 and FGS1 signals
-                        _ = planet_group.create_dataset('AIRS-CH0_signal', data=airs_signal)
-                        _ = planet_group.create_dataset('FGS1_signal', data=fgs_signal)
+                        if self.compress_output:
 
-                        # Save the corrected signals
-                        planet_group['AIRS-CH0_signal'][:] = airs_signal
-                        planet_group['FGS1_signal'][:] = fgs_signal
+                            _ = planet_group.create_dataset(
+                                'AIRS-CH0_signal',
+                                data=airs_signal.data,
+                                compression='gzip',
+                                compression_opts=9
+                            )
+
+                            _ = planet_group.create_dataset(
+                                'AIRS-CH0_mask',
+                                data=airs_signal.mask[0],
+                                compression='gzip',
+                                compression_opts=9
+                            )
+
+                            _ = planet_group.create_dataset(
+                                'FGS1_signal',
+                                data=fgs_signal.data,
+                                compression='gzip',
+                                compression_opts=9
+                            )
+
+                            _ = planet_group.create_dataset(
+                                'FGS1_mask',
+                                data=fgs_signal.mask[0],
+                                compression='gzip',
+                                compression_opts=9)
+                        else:
+                            
+                            _ = planet_group.create_dataset('AIRS-CH0_signal',data=airs_signal.data)
+                            _ = planet_group.create_dataset('AIRS-CH0_mask',data=airs_signal.mask[0])
+                            _ = planet_group.create_dataset('FGS1_signal',data=fgs_signal.data)
+                            _ = planet_group.create_dataset('FGS1_mask',data=fgs_signal.mask[0])
+
+                        output_count += 1
+
+                        if self.verbose:
+                            print(f'Corrected signal for planet {output_count} of {len(self.planet_list)}', end='\r')
 
                     except TypeError as e:
                         print(f'Error writing data for planet {planet}: {e}')

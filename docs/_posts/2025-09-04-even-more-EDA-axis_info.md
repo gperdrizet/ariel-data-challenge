@@ -5,6 +5,8 @@ title: "Understanding Timing and CDS: Making Sense of the Axis Info"
 
 Time to dig into the timing metadata and figure out how these instruments actually work together. The axis info data turned out to be much more useful than I initially thought - it's not about satellite alignment at all, but about the structure of the signal matrices themselves.
 
+Check out the [axis info EDA notebook](https://github.com/gperdrizet/ariel-data-challenge/blob/main/notebooks/01.5-axis_info-CDS.ipynb) on GitHub.
+
 ## 1. What's in the axis info?
 
 The axis info metadata gives us the key to understanding how the telescope data is organized:

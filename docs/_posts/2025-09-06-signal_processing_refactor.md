@@ -24,15 +24,70 @@ The refactored `SignalCorrection()` class in `ariel_data_preprocessing/signal_co
 ```python
 class SignalCorrection:
     '''
-    Class to handle signal correction for Ariel Data Challenge.
+    Complete signal correction and calibration pipeline for Ariel telescope data.
     
-    Implements the complete 6-step preprocessing pipeline:
-    1. Analog-to-Digital Conversion (ADC)
-    2. Hot/dead pixel masking
-    3. Linearity correction
-    4. Dark current subtraction
-    5. Correlated Double Sampling (CDS)
-    6. Flat field correction
+    This class implements the full 6-step preprocessing pipeline required to transform
+    raw Ariel telescope detector outputs into science-ready data suitable for exoplanet
+    atmospheric analysis. The pipeline handles both AIRS-CH0 (infrared spectrometer) 
+    and FGS1 (guidance camera) data with parallel processing capabilities.
+    
+    Processing Pipeline:
+        1. Analog-to-Digital Conversion (ADC) - Convert raw counts to physical units
+        2. Hot/Dead Pixel Masking - Remove problematic detector pixels
+        3. Linearity Correction - Account for non-linear detector response
+        4. Dark Current Subtraction - Remove thermal background noise
+        5. Correlated Double Sampling (CDS) - Reduce read noise via paired exposures
+        6. Flat Field Correction - Normalize pixel-to-pixel sensitivity variations
+    
+    Key Features:
+        - Multiprocessing support for parallel planet processing
+        - Optional FGS1 downsampling to match AIRS-CH0 cadence
+        - Configurable processing steps (can enable/disable individual corrections)
+        - Automatic calibration data loading and management
+        - HDF5 output for efficient large dataset storage
+    
+    Performance Optimizations:
+        - Process-level parallelization across planets
+        - Intelligent FGS downsampling (83% data reduction)
+    
+    Example:
+        >>> corrector = SignalCorrection(
+        ...     input_data_path='data/raw',
+        ...     output_data_path='data/corrected',
+        ...     n_cpus=4,
+        ...     downsample_fgs=True,
+        ...     n_planets=100
+        ... )
+        >>> corrector.run()
+    
+    Input Requirements:
+        - Works with Ariel Data Challenge (2025) dataset from Kaggle
+        - Raw Ariel telescope data in parquet format
+        - Calibration data (dark, dead, flat, linearity correction files)
+        - ADC conversion parameters
+        - Axis info metadata for timing
+    
+    Output:
+        - HDF5 file with corrected AIRS-CH0 and FGS1 signals and hot/dead pixel masks
+        - Organized by planet ID for easy access
+        - Reduced data volume (50% reduction from CDS, optional 83% FGS reduction)
+        - Science-ready data for downstream analysis
+        - Output structure:
+        
+            HDF5 file structure:
+            ├── planet_id_1/
+            │   ├── AIRS-CH0_signal       # Corrected spectrometer data
+            │   ├── AIRS-CH0_signal_mask  # Mask for spectrometer data
+            │   ├── FGS1_signal           # Corrected guidance camera data
+            │   └── FGS1_signal_mask      # Mask for guidance camera data
+            |
+            ├── planet_id_2/
+            │   ├── AIRS-CH0_signal       # Corrected spectrometer data
+            │   ├── AIRS-CH0_signal_mask  # Mask for spectrometer data
+            │   ├── FGS1_signal           # Corrected guidance camera data
+            │   └── FGS1_signal_mask      # Mask for guidance camera data
+            |
+            └── ...
     '''
 ```
 
@@ -61,22 +116,25 @@ Each test uses a subset of real Ariel data to ensure the corrections work with a
 
 Three GitHub workflows handle different aspects of the development pipeline:
 
-### 4.1. Unit testing (`unittest.yml`)
+### 4.1. Unit testing ([`unittest.yml`](https://github.com/gperdrizet/ariel-data-challenge/blob/main/.github/workflows/unittest.yml))
 Triggered on every pull request to main:
+
 - Sets up Python 3.8 environment
 - Installs dependencies
 - Runs the complete test suite
 - Prevents merging if any tests fail
 
-### 4.2. Test PyPI release (`test_pypi_release.yml`)
+### 4.2. Test PyPI release ([`test_pypi_release.yml`](https://github.com/gperdrizet/ariel-data-challenge/blob/main/.github/workflows/test_pypi_release.yml))
 Triggered when pushing tags to the dev branch:
+
 - Builds the package distribution
 - Runs unit tests to ensure quality
 - Publishes to Test PyPI for validation
 - Allows testing the installation process before production release
 
-### 4.3. Production PyPI release (`pypi_release.yml`)
+### 4.3. Production PyPI release ([`pypi_release.yml`](https://github.com/gperdrizet/ariel-data-challenge/blob/main/.github/workflows/pypi_release.yml))
 Triggered when creating a GitHub release:
+
 - Builds the final distribution
 - Runs comprehensive tests
 - Publishes to the main PyPI repository
@@ -87,7 +145,7 @@ Triggered when creating a GitHub release:
 This refactoring effort pays dividends in multiple ways:
 
 ### 5.1. **Reproducibility**
-Anyone can now install and use the exact same preprocessing pipeline:
+The Ariel Data Challenge isn't just about building a working solution - it's about creating tools that the broader astronomical community can use and improve. Anyone can now install and use the exact same preprocessing pipeline:
 
 ```
 pip install ariel-data-preprocessing
@@ -101,9 +159,6 @@ Clean class structure with documented methods makes the code much easier to unde
 
 ### 5.4. **Collaboration**
 Other researchers can easily build on this work, contribute improvements, or adapt the pipeline for their own projects.
-
-### 5.5. **Reproducibility**
-The Ariel Data Challenge isn't just about building a working solution - it's about creating tools that the broader astronomical community can use and improve.
 
 With the preprocessing pipeline now available as a proper Python package, complete with automated testing and continuous deployment, the foundation is solid for the next phase: building machine learning models to extract exoplanet atmospheric spectra.
 
