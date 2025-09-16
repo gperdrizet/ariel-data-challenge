@@ -745,12 +745,6 @@ class SignalCorrection:
                         _ = planet_group.create_dataset('FGS1_signal', data=fgs_signal.data)
                         _ = planet_group.create_dataset('FGS1_mask', data=fgs_signal.mask)
 
-                        # # Save the corrected signals
-                        # planet_group['AIRS-CH0_signal'][:] = airs_signal.data
-                        # planet_group['AIRS-CH0_mask'][:] = airs_signal.mask
-                        # planet_group['FGS1_signal'][:] = fgs_signal.data
-                        # planet_group['FGS1_mask'][:] = fgs_signal.mask
-
                     except TypeError as e:
                         print(f'Error writing data for planet {planet}: {e}')
                         print(f'Workunit was: {result}')
