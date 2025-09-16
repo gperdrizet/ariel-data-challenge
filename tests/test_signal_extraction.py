@@ -16,7 +16,7 @@ class TestSignalExtraction(unittest.TestCase):
     def setUp(self):
         '''Set up test data and SignalExtraction instance'''
         
-        self.input_data = 'tests/test_data/corrected/train.h5'
+        self.input_data_path = 'tests/test_data/corrected'
         self.output_data_path = 'tests/test_data/extracted'
         self.test_planet = '342072318'
         self.inclusion_threshold = 0.75
@@ -28,7 +28,7 @@ class TestSignalExtraction(unittest.TestCase):
         
         # Initialize SignalExtraction instance
         self.signal_extraction = SignalExtraction(
-            input_data=self.input_data,
+            input_data_path=self.input_data_path,
             output_data_path=self.output_data_path,
             inclusion_threshold=self.inclusion_threshold,
             smooth=True,
@@ -37,7 +37,7 @@ class TestSignalExtraction(unittest.TestCase):
         )
         
         # Load test data for method testing
-        with h5py.File(self.input_data, 'r') as hdf:
+        with h5py.File(f'{self.input_data_path}/train.h5', 'r') as hdf:
             self.test_airs_frames = hdf[self.test_planet]['AIRS-CH0_signal'][:]
 
 
@@ -179,7 +179,7 @@ class TestSignalExtraction(unittest.TestCase):
         
         # Test with very low threshold (should select more rows)
         low_threshold_extractor = SignalExtraction(
-            input_data=self.input_data,
+            input_data_path=self.input_data_path,
             output_data_path=self.output_data_path,
             inclusion_threshold=0.1,
             smooth=False,
@@ -188,7 +188,7 @@ class TestSignalExtraction(unittest.TestCase):
         
         # Test with high threshold (should select fewer rows)
         high_threshold_extractor = SignalExtraction(
-            input_data=self.input_data,
+            input_data_path=self.input_data_path,
             output_data_path=self.output_data_path,
             inclusion_threshold=0.9,
             smooth=False,
@@ -206,14 +206,14 @@ class TestSignalExtraction(unittest.TestCase):
         
         # Create extractors with and without smoothing
         no_smooth_extractor = SignalExtraction(
-            input_data=self.input_data,
+            input_data_path=self.input_data_path,
             output_data_path=self.output_data_path,
             smooth=False,
             n_planets=1
         )
         
         smooth_extractor = SignalExtraction(
-            input_data=self.input_data,
+            input_data_path=self.input_data_path,
             output_data_path=self.output_data_path,
             smooth=True,
             smoothing_window=10,
