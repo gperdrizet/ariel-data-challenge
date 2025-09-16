@@ -27,28 +27,28 @@ from ariel-data-preprocessing.signal_correction import SignalCorrection
 signal_correction = SignalCorrection(
     input_data_path='data/raw',
     output_data_path='data/corrected',
-    output_filename='train.h5',
     n_planets=10
 )
 
 signal_correction.run()
 ```
 
-The signal preprocessing pipeline will write the corrected frames and hot/dead pixel masks as an HDF5 archive called `train.h5` with the following structure:
+The signal preprocessing pipeline will write the corrected frames and hot/dead pixel masks as an HDF5 archive called `train.h5` by default with the following structure:
 
 ```text
-    HDF5 file structure:
+    train.h5:
+    │
     ├── planet_id_1/
-    │   ├── AIRS-CH0_signal       # Corrected spectrometer data
-    │   ├── AIRS-CH0_signal_mask  # Mask for spectrometer data
-    │   ├── FGS1_signal           # Corrected guidance camera data
-    │   └── FGS1_signal_mask      # Mask for guidance camera data
+    │   ├── AIRS-CH0_signal   # Corrected spectrometer data
+    │   ├── AIRS-CH0_mask    # Mask for spectrometer data
+    │   ├── FGS1_signal      # Corrected guidance camera data
+    │   └── FGS1_mask        # Mask for guidance camera data
     |
     ├── planet_id_2/
-    │   ├── AIRS-CH0_signal       # Corrected spectrometer data
-    │   ├── AIRS-CH0_signal_mask  # Mask for spectrometer data
-    │   ├── FGS1_signal           # Corrected guidance camera data
-    │   └── FGS1_signal_mask      # Mask for guidance camera data
+    │   ├── AIRS-CH0_signal  # Corrected spectrometer data
+    │   ├── AIRS-CH0_mask    # Mask for spectrometer data
+    │   ├── FGS1_signal      # Corrected guidance camera data
+    │   └── FGS1_mask        # Mask for guidance camera data
     |
     └── ...
 ```
@@ -70,7 +70,7 @@ See the following notebooks for implementation details and plots:
 from ariel-data-preprocessing.signal_correction import SignalExtraction
 
 signal_extraction = SignalExtraction(
-    input_data_path='data/corrected',
+    input_data='data/corrected/train.h5',
     output_data_path='data/extracted',
     inclusion_threshold=0.95
 )
@@ -78,4 +78,18 @@ signal_extraction = SignalExtraction(
 signal_extraction.run()
 ```
 
-Output data will be written to `train.h5` in the directory passed to `output_data_path`. The structure of the HDF5 archive matches the output from `SignalCorrection()`.
+Output data will be written to `train.h5` by default in the directory passed to `output_data_path`. The structure of the HDF5 archive is as follows:
+
+```text
+    train.h5
+    |
+    ├── planet_1/
+    │   ├── signal  # Shape: (n_frames, n_wavelengths)
+    │   └── mask    # Shape: (n_frames, n_wavelengths)
+    │
+    ├── planet_2/
+    │   ├── signal  # Shape: (n_frames, n_wavelengths)
+    │   └── mask    # Shape: (n_frames, n_wavelengths)
+    │
+    └── ...
+```
