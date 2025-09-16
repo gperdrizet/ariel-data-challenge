@@ -40,7 +40,7 @@ def get_planet_list(input_data: str):
             return planets
 
 
-def load_masked_frames(hdf: h5py.File, planet: str, instrument: str) -> ma.MaskedArray:
+def load_masked_frames(hdf: h5py.File, planet: str, instrument: None) -> ma.MaskedArray:
     '''
     Load the masked frames for a given planet and instrument from the HDF5 file.
 
@@ -52,8 +52,23 @@ def load_masked_frames(hdf: h5py.File, planet: str, instrument: str) -> ma.Maske
     Returns:
         np.ma.MaskedArray: Masked array representing the mask for the planet
     '''
-    frames = hdf[planet][f'{instrument}_signal'][:]
-    mask = hdf[planet][f'{instrument}_mask'][:]
+    if len(hdf[planet]) == 4:
+
+        if instrument not in ['AIRS-CH0', 'FGS1']:
+            raise ValueError('Instrument must be either "AIRS-CH0" or "FGS1".')
+        
+        else:
+            frames = hdf[planet][f'{instrument}_signal'][:]
+            mask = hdf[planet][f'{instrument}_mask'][:]
+
+    elif len(hdf[planet]) == 2:
+
+        frames = hdf[planet]['signal'][:]
+        mask = hdf[planet]['mask'][:]
+
+    else:
+        raise ValueError('Unexpected number of datasets in planet group.')
+    
     mask = np.tile(mask, (frames.shape[0], 1, 1))
     frames = ma.MaskedArray(frames, mask=mask)
 
