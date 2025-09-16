@@ -108,7 +108,8 @@ class SignalCorrection:
             offset: float = -1000.0,
             n_cpus: int = 1,
             n_planets: int = -1,
-            downsample_fgs: bool = False
+            downsample_fgs: bool = False,
+            compress_output: bool = False,
     ):
         '''
         Initialize the SignalCorrection class with processing parameters.
@@ -740,10 +741,40 @@ class SignalCorrection:
                         planet_group = hdf.require_group(planet)
 
                         # Create datasets for AIRS-CH0 and FGS1 signals
-                        _ = planet_group.create_dataset('AIRS-CH0_signal', data=airs_signal.data)
-                        _ = planet_group.create_dataset('AIRS-CH0_mask', data=airs_signal.mask)
-                        _ = planet_group.create_dataset('FGS1_signal', data=fgs_signal.data)
-                        _ = planet_group.create_dataset('FGS1_mask', data=fgs_signal.mask)
+                        if self.compress_output:
+
+                            _ = planet_group.create_dataset(
+                                'AIRS-CH0_signal',
+                                data=airs_signal.data,
+                                compression='blosc',
+                                compression_opts=9
+                            )
+
+                            _ = planet_group.create_dataset(
+                                'AIRS-CH0_mask',
+                                data=airs_signal.mask[0],
+                                compression='blosc',
+                                compression_opts=9
+                            )
+
+                            _ = planet_group.create_dataset(
+                                'FGS1_signal',
+                                data=fgs_signal.data,
+                                compression='blosc',
+                                compression_opts=9
+                            )
+
+                            _ = planet_group.create_dataset(
+                                'FGS1_mask',
+                                data=fgs_signal.mask[0],
+                                compression='blosc',
+                                compression_opts=9)
+                        else:
+                            
+                            _ = planet_group.create_dataset('AIRS-CH0_signal',data=airs_signal.data)
+                            _ = planet_group.create_dataset('AIRS-CH0_mask',data=airs_signal.mask[0])
+                            _ = planet_group.create_dataset('FGS1_signal',data=fgs_signal.data)
+                            _ = planet_group.create_dataset('FGS1_mask',data=fgs_signal.mask[0])
 
                     except TypeError as e:
                         print(f'Error writing data for planet {planet}: {e}')
