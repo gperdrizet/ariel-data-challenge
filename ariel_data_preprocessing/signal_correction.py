@@ -179,16 +179,20 @@ class SignalCorrection:
         self.n_planets = n_planets
         self.downsample_fgs = downsample_fgs
 
+        if input_data_path is None or output_data_path is None:
+            raise ValueError("Input and output data paths must be provided.")
+
         # Make sure output directory exists
         os.makedirs(self.output_data_path, exist_ok=True)
 
-        # Remove hdf5 files from previous runs
+        # Set output filename
         if self.output_filename is not None:
             filename = (f'{self.output_data_path}/{self.output_filename}')
 
         else:
             filename = (f'{self.output_data_path}/train.h5')
         
+        # Remove hdf5 file, if it already exists
         try:
             os.remove(filename)
 
