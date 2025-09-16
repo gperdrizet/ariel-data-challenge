@@ -33,23 +33,23 @@ signal_correction = SignalCorrection(
 signal_correction.run()
 ```
 
-The signal preprocessing pipeline will write the corrected frames as an HDF5 archive called `train.h5` with the following structure:
+The signal preprocessing pipeline will write the corrected frames and hot/dead pixel masks as an HDF5 archive called `train.h5` with the following structure:
 
 ```text
-├── planet_1
-|   ├── AIRS-CH0_signal
-│   └── FGS1_signal
-│
-├── planet_1
-|   ├── AIRS-CH0_signal
-│   └── FGS1_signal
-│
-.
-.
-.
-└── planet_n
-    ├── AIRS-CH0_signal
-    └── FGS1_signal
+    HDF5 file structure:
+    ├── planet_id_1/
+    │   ├── AIRS-CH0_signal       # Corrected spectrometer data
+    │   ├── AIRS-CH0_signal_mask  # Mask for spectrometer data
+    │   ├── FGS1_signal           # Corrected guidance camera data
+    │   └── FGS1_signal_mask      # Mask for guidance camera data
+    |
+    ├── planet_id_2/
+    │   ├── AIRS-CH0_signal       # Corrected spectrometer data
+    │   ├── AIRS-CH0_signal_mask  # Mask for spectrometer data
+    │   ├── FGS1_signal           # Corrected guidance camera data
+    │   └── FGS1_signal_mask      # Mask for guidance camera data
+    |
+    └── ...
 ```
 
 ## 2. Signal extraction

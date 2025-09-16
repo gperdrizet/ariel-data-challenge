@@ -68,9 +68,26 @@ class SignalCorrection:
         - Axis info metadata for timing
     
     Output:
-        - HDF5 file with corrected AIRS-CH0 and FGS1 signals
+        - HDF5 file with corrected AIRS-CH0 and FGS1 signals and hot/dead pixel masks
+        - Organized by planet ID for easy access
         - Reduced data volume (50% reduction from CDS, optional 83% FGS reduction)
         - Science-ready data for downstream analysis
+        - Output structure:
+        
+            HDF5 file structure:
+            ├── planet_id_1/
+            │   ├── AIRS-CH0_signal       # Corrected spectrometer data
+            │   ├── AIRS-CH0_signal_mask  # Mask for spectrometer data
+            │   ├── FGS1_signal           # Corrected guidance camera data
+            │   └── FGS1_signal_mask      # Mask for guidance camera data
+            |
+            ├── planet_id_2/
+            │   ├── AIRS-CH0_signal       # Corrected spectrometer data
+            │   ├── AIRS-CH0_signal_mask  # Mask for spectrometer data
+            │   ├── FGS1_signal           # Corrected guidance camera data
+            │   └── FGS1_signal_mask      # Mask for guidance camera data
+            |
+            └── ...
     '''
 ```
 

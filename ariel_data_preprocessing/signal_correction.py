@@ -66,9 +66,26 @@ class SignalCorrection:
         - Axis info metadata for timing
     
     Output:
-        - HDF5 file with corrected AIRS-CH0 and FGS1 signals
+        - HDF5 file with corrected AIRS-CH0 and FGS1 signals and hot/dead pixel masks
+        - Organized by planet ID for easy access
         - Reduced data volume (50% reduction from CDS, optional 83% FGS reduction)
         - Science-ready data for downstream analysis
+        - Output structure:
+        
+            HDF5 file structure:
+            ├── planet_id_1/
+            │   ├── AIRS-CH0_signal       # Corrected spectrometer data
+            │   ├── AIRS-CH0_signal_mask  # Mask for spectrometer data
+            │   ├── FGS1_signal           # Corrected guidance camera data
+            │   └── FGS1_signal_mask      # Mask for guidance camera data
+            |
+            ├── planet_id_2/
+            │   ├── AIRS-CH0_signal       # Corrected spectrometer data
+            │   ├── AIRS-CH0_signal_mask  # Mask for spectrometer data
+            │   ├── FGS1_signal           # Corrected guidance camera data
+            │   └── FGS1_signal_mask      # Mask for guidance camera data
+            |
+            └── ...
     '''
 
     def __init__(
@@ -665,11 +682,17 @@ class SignalCorrection:
         Output Format:
             HDF5 file structure:
             ├── planet_id_1/
-            │   ├── AIRS-CH0_signal  # Corrected spectrometer data
-            │   └── FGS1_signal      # Corrected guidance camera data
+            │   ├── AIRS-CH0_signal       # Corrected spectrometer data
+            │   ├── AIRS-CH0_signal_mask  # Mask for spectrometer data
+            │   ├── FGS1_signal           # Corrected guidance camera data
+            │   └── FGS1_signal_mask      # Mask for guidance camera data
+            |
             ├── planet_id_2/
-            │   ├── AIRS-CH0_signal
-            │   └── FGS1_signal
+            │   ├── AIRS-CH0_signal       # Corrected spectrometer data
+            │   ├── AIRS-CH0_signal_mask  # Mask for spectrometer data
+            │   ├── FGS1_signal           # Corrected guidance camera data
+            │   └── FGS1_signal_mask      # Mask for guidance camera data
+            |
             └── ...
             
         Error Handling:
@@ -702,7 +725,7 @@ class SignalCorrection:
 
                     try:
 
-                        # Create groups for this planet if not existing
+                        # Create groups for this planet
                         planet_group = hdf.require_group(planet)
 
                         # Create datasets for AIRS-CH0 and FGS1 signals
@@ -710,8 +733,10 @@ class SignalCorrection:
                         _ = planet_group.create_dataset('FGS1_signal', data=fgs_signal)
 
                         # Save the corrected signals
-                        planet_group['AIRS-CH0_signal'][:] = airs_signal
-                        planet_group['FGS1_signal'][:] = fgs_signal
+                        planet_group['AIRS-CH0_signal'][:] = airs_signal.data
+                        planet_group['AIRS-CH0_signal_mask'][:] = airs_signal.mask
+                        planet_group['FGS1_signal'][:] = fgs_signal.data
+                        planet_group['FGS1_signal_mask'][:] = fgs_signal.mask
 
                     except TypeError as e:
                         print(f'Error writing data for planet {planet}: {e}')
