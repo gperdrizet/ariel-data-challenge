@@ -16,7 +16,7 @@ class TestSignalExtraction(unittest.TestCase):
     def setUp(self):
         '''Set up test data and SignalExtraction instance'''
         
-        self.input_data_path = 'tests/test_data/corrected'
+        self.input_data = 'tests/test_data/corrected/train.h5'
         self.output_data_path = 'tests/test_data/extracted'
         self.test_planet = '342072318'
         self.inclusion_threshold = 0.75
@@ -28,7 +28,7 @@ class TestSignalExtraction(unittest.TestCase):
         
         # Initialize SignalExtraction instance
         self.signal_extraction = SignalExtraction(
-            input_data_path=self.input_data_path,
+            input_data=self.input_data,
             output_data_path=self.output_data_path,
             inclusion_threshold=self.inclusion_threshold,
             smooth=True,
@@ -37,17 +37,8 @@ class TestSignalExtraction(unittest.TestCase):
         )
         
         # Load test data for method testing
-        with h5py.File(f'{self.input_data_path}/train.h5', 'r') as hdf:
+        with h5py.File(self.input_data, 'r') as hdf:
             self.test_airs_frames = hdf[self.test_planet]['AIRS-CH0_signal'][:]
-
-
-    def test_get_planet_list(self):
-        '''Test planet list retrieval'''
-        planet_list = self.signal_extraction._get_planet_list()
-        
-        self.assertIsInstance(planet_list, list)
-        self.assertGreater(len(planet_list), 0)
-        self.assertIn(self.test_planet, planet_list)
 
 
     def test_select_top_rows(self):
@@ -86,44 +77,68 @@ class TestSignalExtraction(unittest.TestCase):
         self.assertGreaterEqual(len(rows_75), len(rows_90))
 
 
+    def test_select_top_cols(self):
+        '''Test top column selection method'''
+        
+        # Test with different inclusion thresholds
+        for threshold in [0.5, 0.75, 1.0]:
+            with self.subTest(threshold=threshold):
+                selected_cols = self.signal_extraction._select_top_cols(
+                    self.test_airs_frames, 
+                    threshold
+                )
+                
+                self.assertIsInstance(selected_cols, list)
+                self.assertGreater(len(selected_cols), 0)
+                
+                # Higher threshold should select fewer columns
+                if threshold < 1.0:
+                    self.assertLess(len(selected_cols), self.test_airs_frames.shape[2])
+                
+                # All selected column indices should be valid
+                for col_idx in selected_cols:
+                    self.assertGreaterEqual(col_idx, 0)
+                    self.assertLess(col_idx, self.test_airs_frames.shape[2])
+
+
+    def test_select_top_cols_threshold_behavior(self):
+        '''Test that higher thresholds select fewer columns'''
+        
+        cols_50 = self.signal_extraction._select_top_cols(self.test_airs_frames, 0.5)
+        cols_75 = self.signal_extraction._select_top_cols(self.test_airs_frames, 0.75)
+        cols_90 = self.signal_extraction._select_top_cols(self.test_airs_frames, 0.9)
+        
+        # Higher threshold should select same or fewer columns
+        self.assertGreaterEqual(len(cols_50), len(cols_75))
+        self.assertGreaterEqual(len(cols_75), len(cols_90))
+
+
     def test_moving_average_rows(self):
-        '''Test moving average calculation'''
+        '''Test moving average calculation - note: runs cumsum moving average on
+        transpose of input data'''
         
         # Create test data with known pattern
         test_data = np.array([
-            [1, 2, 3, 4, 5, 6],
-            [2, 4, 6, 8, 10, 12]
+            [1, 5, 9],
+            [2, 6, 10],
+            [3, 7, 11],
+            [4, 8, 12]
         ])
         
         # Test with window size 3
         result = SignalExtraction.moving_average_rows(test_data, 3)
         
         # Check shape
-        expected_cols = test_data.shape[1] - 3 + 1
-        self.assertEqual(result.shape, (test_data.shape[0], expected_cols))
+        expected_rows = test_data.shape[0] - 3 + 1
+        self.assertEqual(result.shape, (expected_rows, test_data.shape[1]))
         
         # Check values for first row
-        expected_first_row = np.array([2.0, 3.0, 4.0, 5.0])  # (1+2+3)/3, (2+3+4)/3, etc.
+        expected_first_row = np.array([2.0, 6.0, 10.0])
         np.testing.assert_array_almost_equal(result[0], expected_first_row)
         
         # Check values for second row
-        expected_second_row = np.array([4.0, 6.0, 8.0, 10.0])  # (2+4+6)/3, (4+6+8)/3, etc.
+        expected_second_row = np.array([3.0, 7.0, 11.0])
         np.testing.assert_array_almost_equal(result[1], expected_second_row)
-
-
-    def test_moving_average_edge_cases(self):
-        '''Test moving average with edge cases'''
-        
-        # Test with window size 1 (should return original minus first column padding)
-        test_data = np.array([[1, 2, 3, 4]])
-        result = SignalExtraction.moving_average_rows(test_data, 1)
-        expected = np.array([[1, 2, 3, 4]])
-        np.testing.assert_array_equal(result, expected)
-        
-        # Test with window size equal to array width
-        result = SignalExtraction.moving_average_rows(test_data, 4)
-        expected = np.array([[2.5]])  # Average of [1,2,3,4]
-        np.testing.assert_array_equal(result, expected)
 
 
     def test_run_method(self):
@@ -140,17 +155,22 @@ class TestSignalExtraction(unittest.TestCase):
         with h5py.File(output_file, 'r') as hdf:
             self.assertIn(self.test_planet, hdf.keys())
             
-            extracted_signal = hdf[self.test_planet]['AIRS-CH0_signal'][:]
+            # Check that both signal and mask datasets exist
+            self.assertIn('signal', hdf[self.test_planet].keys())
+            self.assertIn('mask', hdf[self.test_planet].keys())
+            
+            extracted_signal = hdf[self.test_planet]['signal'][:]
+            extracted_mask = hdf[self.test_planet]['mask'][:]
             
             # Check shape - should be (frames, wavelengths)
             self.assertEqual(len(extracted_signal.shape), 2)
             
-            # Should have same number of frames as input
-            expected_frames = self.test_airs_frames.shape[0]
-            self.assertEqual(extracted_signal.shape[0], expected_frames - self.smoothing_window + 1)
+            # Should have fewer frames due to smoothing
+            expected_frames = self.test_airs_frames.shape[0] - self.smoothing_window + 1
+            self.assertEqual(extracted_signal.shape[0], expected_frames)
             
-            # Should have same number of wavelengths as input
-            expected_wavelengths = self.test_airs_frames.shape[2]
+            # Should have wavelengths + 1 FGS column
+            expected_wavelengths = self.test_airs_frames.shape[2] + 1  # AIRS + FGS
             self.assertEqual(extracted_signal.shape[1], expected_wavelengths)
 
 
@@ -159,7 +179,7 @@ class TestSignalExtraction(unittest.TestCase):
         
         # Test with very low threshold (should select more rows)
         low_threshold_extractor = SignalExtraction(
-            input_data_path=self.input_data_path,
+            input_data=self.input_data,
             output_data_path=self.output_data_path,
             inclusion_threshold=0.1,
             smooth=False,
@@ -168,7 +188,7 @@ class TestSignalExtraction(unittest.TestCase):
         
         # Test with high threshold (should select fewer rows)
         high_threshold_extractor = SignalExtraction(
-            input_data_path=self.input_data_path,
+            input_data=self.input_data,
             output_data_path=self.output_data_path,
             inclusion_threshold=0.9,
             smooth=False,
@@ -186,14 +206,14 @@ class TestSignalExtraction(unittest.TestCase):
         
         # Create extractors with and without smoothing
         no_smooth_extractor = SignalExtraction(
-            input_data_path=self.input_data_path,
+            input_data=self.input_data,
             output_data_path=self.output_data_path,
             smooth=False,
             n_planets=1
         )
         
         smooth_extractor = SignalExtraction(
-            input_data_path=self.input_data_path,
+            input_data=self.input_data,
             output_data_path=self.output_data_path,
             smooth=True,
             smoothing_window=10,

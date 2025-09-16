@@ -8,6 +8,7 @@ import h5py
 
 from ariel_data_preprocessing.signal_correction import SignalCorrection
 from ariel_data_preprocessing.calibration_data import CalibrationData
+from ariel_data_preprocessing.utils import get_planet_list
 
 class TestSignalCorrection(unittest.TestCase):
 
@@ -73,7 +74,7 @@ class TestSignalCorrection(unittest.TestCase):
     def test_planet_list(self):
         '''Test planet list extraction'''
 
-        planet_list = self.signal_correction._get_planet_list()
+        planet_list = get_planet_list(self.input_data_path)
 
         self.assertTrue(isinstance(planet_list, list))
         self.assertTrue(len(planet_list) > 0)
