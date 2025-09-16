@@ -174,33 +174,39 @@ class SignalExtraction:
         '''
 
         # Open HDF5 input
-        with h5py.File(f'{self.input_data_path}/train.h5', 'r') as hdf:
+        with h5py.File(self.input_data, 'r') as hdf:
             for planet in self.planet_list:
 
                 # Load AIRS frames & apply mask
                 airs_frames = hdf[planet]['AIRS-CH0_signal'][:]
                 airs_mask = hdf[planet]['AIRS-CH0_mask'][:]
                 airs_frames = ma.MaskedArray(airs_frames, mask=airs_mask)
+                print(f'Processing planet {planet} with AIRS frames shape {airs_frames.shape}')
 
                 # Extract AIRS signal
                 airs_signal = self._extract_airs_signal(airs_frames)
+                print(f'Extracted AIRS signal for {planet} with shape {airs_signal.shape}')
 
                 # Load FGS frames & apply mask
                 fgs_frames = hdf[planet]['FGS1_signal'][:]
                 fgs_mask = hdf[planet]['FGS1_mask'][:]
                 fgs_frames = ma.MaskedArray(fgs_frames, mask=fgs_mask)
+                print(f'Processing planet {planet} with FGS frames shape {fgs_frames.shape}')
 
                 # Extract FGS signal
                 fgs_signal = self._extract_fgs_signal(fgs_frames)
+                print(f'Extracted FGS signal for {planet} with shape {fgs_signal.shape}')
 
                 # Combine the AIRS and FGS signals
-                signal = np.concatenate((fgs_signal, airs_signal), axis=1)
+                signal = np.insert(airs_signal, 0, fgs_signal, axis=1)
+                print(f'Combined signal shape for {planet}: {signal.shape}')
 
                 # Smooth each wavelength across the frames
                 if self.smooth:
                     signal = self.moving_average_rows(
                         signal, self.smoothing_window
                     )
+                    print(f'Smoothed signal shape for {planet}: {signal.shape}')
 
                 # Save the extracted signal to HDF5
                 output_file = f'{self.output_data_path}/train.h5'
@@ -243,6 +249,8 @@ class SignalExtraction:
             self.inclusion_threshold
         )
 
+        print(f'Top airs rows shape: {np.array(top_rows).shape}')
+
         # Get the top rows for each frame
         signal_strip = frames[:, top_rows, :]
 
@@ -269,11 +277,14 @@ class SignalExtraction:
             self.inclusion_threshold
         )
 
+        print(f'Top fgs rows shape: {np.array(top_rows).shape}')
+        print(f'Top fgs cols shape: {np.array(top_cols).shape}')
+
         # Now index the original array to get the top rows for each frame
-        signal_strip = frames[:, top_rows[1], :]
+        signal_strip = frames[:, top_rows, :]
 
         # And then the top columns for each frame
-        signal_block = signal_strip[:, :, top_cols[1]]
+        signal_block = signal_strip[:, :, top_cols]
 
         # Sum the block per frame
         signal = np.sum(signal_block, axis=1)
@@ -299,7 +310,7 @@ class SignalExtraction:
             IOError: If input HDF5 file cannot be opened or read
         '''
 
-        with h5py.File(f'{self.input_data_path}/train.h5', 'r') as hdf:
+        with h5py.File(self.input_data, 'r') as hdf:
             planet_list = list(hdf.keys())
 
         return planet_list
