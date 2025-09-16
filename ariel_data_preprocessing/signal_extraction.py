@@ -200,6 +200,7 @@ class SignalExtraction:
                 # Combine the AIRS and FGS signals
                 signal = np.insert(airs_signal, 0, fgs_signal, axis=1)
                 print(f'Combined signal shape for {planet}: {signal.shape}')
+                print(f'Combined signal dtype for {planet}: {type(signal)}')
 
                 # Smooth each wavelength across the frames
                 if self.smooth:
@@ -217,7 +218,11 @@ class SignalExtraction:
 
                     planet_group.create_dataset(
                         'signal',
-                        data=signal
+                        data=signal.data
+                    )
+                    planet_group.create_dataset(
+                        'mask',
+                        data=signal.mask
                     )
 
 
