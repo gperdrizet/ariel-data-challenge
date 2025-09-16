@@ -10,7 +10,7 @@ if __name__ == '__main__':
         output_data_path='data/signal_corrected',
         output_filename='train.h5',  # Specify the output filename here
         n_cpus=10,
-        n_planets=10,
+        n_planets=-1,
         downsample_fgs=True
     )
 
@@ -20,7 +20,8 @@ if __name__ == '__main__':
         input_data='data/signal_corrected/train.h5',
         output_data_path='data/extracted',
         output_filename='train.h5',  # Specify the output filename here
-        n_planets=10,
+        inclusion_threshold=0.9,
+        n_planets=-1,
     )
 
     signal_extraction.run()
