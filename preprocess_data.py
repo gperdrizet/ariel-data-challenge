@@ -1,33 +1,21 @@
 '''Main runner for the signal correction & extraction pipeline.'''
 
-import ariel_data_preprocessing.signal_correction as sc
-import ariel_data_preprocessing.signal_extraction as se
+from ariel_data_preprocessing.data_preprocessing import DataProcessor
 import configuration as config
 
 if __name__ == '__main__':
 
-    print('\nStarting signal correction...')
+    print('\nStarting data preprocessing...')
 
-    signal_correction = sc.SignalCorrection(
+    data_preprocessor = DataProcessor(
         input_data_path=config.RAW_DATA_DIRECTORY,
-        output_data_path=config.CORRECTED_SIGNAL_DIRECTORY,
+        output_data_path=config.PROCESSED_DATA_DIRECTORY,
         n_cpus=11,
         n_planets=10,
         downsample_fgs=True,
         verbose=True
     )
 
-    signal_correction.run()
+    data_preprocessor.run()
 
-    print('\n\nSignal correction completed, starting signal extraction...')
-
-    signal_extraction = se.SignalExtraction(
-        input_data_path=config.CORRECTED_SIGNAL_DIRECTORY,
-        output_data_path=config.EXTRACTED_SIGNAL_DIRECTORY,
-        inclusion_threshold=0.75,
-        n_planets=10,
-        verbose=True
-    )
-
-    signal_extraction.run()
-    print('\n\nSignal extraction completed.')
+    print('\nData preprocessing complete\n')
