@@ -8,7 +8,7 @@ class CalibrationData:
     Class to load and store calibration data for signal correction.
     
     This class reads all necessary calibration files for a given planet
-    and stores them as attributes for use in the SignalCorrection pipeline.
+    and stores them as attributes for use in the DataProcessor pipeline.
     
     Attributes:
         dark_airs (np.ndarray): AIRS-CH0 dark frame (thermal background)
