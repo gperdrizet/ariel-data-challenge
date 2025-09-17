@@ -17,10 +17,14 @@ def ADC_convert(signal, gain, offset):
     
     Args:
         signal (np.ndarray): Raw detector signal
+        gain (float): ADC gain factor for conversion
+        offset (float): ADC offset value for conversion
         
     Returns:
         np.ndarray: ADC-corrected signal
     '''
+
+    # Convert to float64 for precision
     signal = signal.astype(np.float64)
     signal /= gain    # Apply gain correction
     signal += offset  # Apply offset correction
@@ -43,6 +47,7 @@ def mask_hot_dead(signal, dead, dark):
     Returns:
         np.ma.MaskedArray: Signal with hot/dead pixels masked
     '''
+
     # Identify hot pixels using 5-sigma clipping on dark frame
     hot = sigma_clip(
         dark, sigma=5, maxiters=5
@@ -73,6 +78,7 @@ def apply_linear_corr(linear_corr, signal):
     Returns:
         np.ndarray: Linearity-corrected signal
     '''
+
     # Flip coefficients for correct polynomial order
     linear_corr = np.flip(linear_corr, axis=0)
 
@@ -126,6 +132,7 @@ def get_cds(signal):
     Returns:
         np.ndarray: CDS-processed signal (half the input frames)
     '''
+
     # Subtract even frames from odd frames
     cds = signal[1::2,:,:] - signal[::2,:,:]
 
@@ -147,6 +154,7 @@ def correct_flat_field(signal, flat, dead):
     Returns:
         np.ndarray: Flat field corrected signal
     '''
+
     # Transpose flat field to match signal orientation
     signal = signal.transpose(0, 2, 1)
     flat = flat.transpose(1, 0)
@@ -183,6 +191,7 @@ def fgs_downsamples(fgs_frames):
         For n=24, generates indices: [0, 1, 24, 25, 48, 49, ...]
         This creates pairs for CDS while dramatically reducing data volume.
     '''
+
     n = 24  # Take 2 elements, skip 20
     indices_to_take = np.arange(0, fgs_frames, n)  # Start from 0, step by n
     indices_to_take = np.concatenate([  # Add the next index

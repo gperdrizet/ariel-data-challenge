@@ -16,6 +16,7 @@ def extract_airs_signal(frames: np.ndarray, inclusion_threshold: float) -> np.nd
 
     Parameters:
         frames (np.ndarray): Input AIRS frames with shape (n_frames, n_rows, n_wavelengths)
+        inclusion_threshold (float): Threshold value between 0-1 for row selection.
 
     Returns:
         np.ndarray: Extracted 2D spectral signal with shape (n_frames, n_wavelengths)

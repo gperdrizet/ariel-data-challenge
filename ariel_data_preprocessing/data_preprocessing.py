@@ -50,14 +50,14 @@ class DataProcessor:
         - Intelligent FGS downsampling (83% data reduction)
     
     Example:
-        >>> corrector = SignalCorrection(
+        >>> processor = DataProcessor(
         ...     input_data_path='data/raw',
         ...     output_data_path='data/corrected',
         ...     n_cpus=4,
         ...     downsample_fgs=True,
         ...     n_planets=100
         ... )
-        >>> corrector.run()
+        >>> processor.run()
     
     Input Requirements:
         - Works with Ariel Data Challenge (2025) dataset from Kaggle
@@ -91,18 +91,14 @@ class DataProcessor:
             train.h5:
             │
             ├── planet_id_1/
-            │   ├── AIRS-CH0_signal  # Corrected spectrometer data
-            │   ├── AIRS-CH0_mask    # Mask for spectrometer data
-            │   ├── FGS1_signal      # Corrected guidance camera data
-            │   └── FGS1_mask        # Mask for guidance camera data
+            │   ├── signal  # Combined corrected/extracted spectral time series
+            │   └── mask    # Dead/hot pixel mask for spectra
             |
             ├── planet_id_2/
-            │   ├── AIRS-CH0_signal  # Corrected spectrometer data
-            │   ├── AIRS-CH0_mask    # Mask for spectrometer data
-            │   ├── FGS1_signal      # Corrected guidance camera data
-            │   └── FGS1_mask        # Mask for guidance camera data
+            │   ├── signal  
+            │   └── mask    
             |
-            └── ...
+            └── planet_id_n/
     '''
 
     def __init__(
@@ -132,7 +128,7 @@ class DataProcessor:
             verbose: bool = False
     ):
         '''
-        Initialize the SignalCorrection class with processing parameters.
+        Initialize the DataProcessor class with processing parameters.
         
         Parameters:
             - input_data_path (str): Path to directory containing raw Ariel telescope data
@@ -160,6 +156,7 @@ class DataProcessor:
             ValueError: If input_data_path or output_data_path are None
         '''
         
+        # Check required parameters
         if input_data_path is None or output_data_path is None:
             raise ValueError("Input and output data paths must be provided.")
         
@@ -338,8 +335,11 @@ class DataProcessor:
         '''
 
         while True:
+
+            # Get the next planet ID from the input queue
             planet = input_queue.get()
 
+            # Check for stop signal
             if planet == 'STOP':
                 result = {
                     'planet': 'STOP',
@@ -379,6 +379,16 @@ class DataProcessor:
 
             # Get frame count
             airs_frames = airs_signal.shape[0]
+
+            if airs_frames != fgs_frames:
+                raise ValueError(
+                    f'Frame count mismatch for planet {planet}'
+                )
+            
+            if airs_frames < self.smoothing_window:
+                raise ValueError(
+                    f'Not enough frames for smoothing for planet {planet}'
+                )
 
             # Load and prep calibration data
             calibration_data = CalibrationData(
@@ -440,7 +450,7 @@ class DataProcessor:
             # Step 5: Correlated Double Sampling (CDS)
             if self.cds_subtraction:
                 airs_signal = correction_funcs.get_cds(airs_signal)
-                fgs_signal = correction_funcs.get_cds(fgs_signal) 
+                fgs_signal = correction_funcs.get_cds(fgs_signal)
 
             # Step 6: Flat field correction
             if self.flat_field_correction:
@@ -467,13 +477,16 @@ class DataProcessor:
                 inclusion_threshold=self.inclusion_threshold
             )
 
-            # Step 8: Combine AIRS-CH0 and FGS1 signals
+            # Step 8: Combine AIRS-CH0 and FGS1 signals, handling the masks separately
             signal = np.insert(airs_signal, 0, fgs_signal, axis=1)
+            mask = np.insert(airs_signal.mask, 0, fgs_signal.mask, axis=1)
+            signal = np.ma.MaskedArray(signal, mask=mask)   
             
             # Step 9: Smooth each wavelength across the frames
             if self.smooth:
                 signal = extraction_funcs.moving_average_rows(
-                    signal, self.smoothing_window
+                    signal,
+                    self.smoothing_window
                 )
 
             result = {
@@ -522,8 +535,11 @@ class DataProcessor:
         output_count = 0
 
         while True:
+
+            # Get the next result from the output queue
             result = output_queue.get()
 
+            # Check for stop signals from workers
             if result['planet'] == 'STOP':
                 stop_count += 1
 
@@ -531,6 +547,8 @@ class DataProcessor:
                     break
 
             else:
+
+                # Unpack workunit
                 planet = result['planet']
                 signal = result['signal']
 
@@ -560,17 +578,19 @@ class DataProcessor:
 
                         else:
                             _ = planet_group.create_dataset(
-                                'signal',data=signal.data
+                                'signal',
+                                data=signal.data
                             )
                             _ = planet_group.create_dataset(
-                                'mask',data=signal.mask[0]
+                                'mask',
+                                data=signal.mask[0]
                             )
-
 
                         output_count += 1
 
                         if self.verbose:
-                            print(f'Processed signal for planet {output_count} of {len(self.planet_list)}', end='\r')
+                            print(f'Processed signal for planet {output_count} ' +
+                                  f'of {len(self.planet_list)}', end='\r')
 
                     except TypeError as e:
                         print(f'Error writing data for planet {planet}: {e}')

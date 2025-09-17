@@ -9,6 +9,19 @@ class CalibrationData:
     
     This class reads all necessary calibration files for a given planet
     and stores them as attributes for use in the SignalCorrection pipeline.
+    
+    Attributes:
+        dark_airs (np.ndarray): AIRS-CH0 dark frame (thermal background)
+        dead_airs (np.ndarray): AIRS-CH0 dead pixel mask
+        dark_fgs (np.ndarray): FGS1 dark frame (thermal background)
+        dead_fgs (np.ndarray): FGS1 dead pixel mask
+        linear_corr_airs (np.ndarray): AIRS-CH0 linearity correction coefficients
+        linear_corr_fgs (np.ndarray): FGS1 linearity correction coefficients
+        flat_airs (np.ndarray): AIRS-CH0 flat field frame
+        flat_fgs (np.ndarray): FGS1 flat field frame
+        axis_info (pd.DataFrame): Timing and metadata information
+        dt_airs (np.ndarray): AIRS-CH0 integration times per frame
+        dt_fgs (np.ndarray): FGS1 integration times per frame
     '''
 
     def __init__(
@@ -24,7 +37,10 @@ class CalibrationData:
         Initialize CalibrationData by loading calibration files.
         
         Args:
+            input_data_path (str): Path to raw data directory containing axis_info.parquet
             planet_path (str): Path to the planet's data directory
+            airs_frames (int): Number of AIRS-CH0 frames for timing data
+            fgs_frames (int): Number of FGS1 frames for timing data
             cut_inf (int): Lower wavelength cut index for AIRS-CH0
             cut_sup (int): Upper wavelength cut index for AIRS-CH0
         '''
@@ -61,7 +77,7 @@ class CalibrationData:
         self.axis_info = pd.read_parquet(f'{input_data_path}/axis_info.parquet')
 
         self.dt_airs = self.axis_info['AIRS-CH0-integration_time'].dropna().values[:airs_frames]
-        self.dt_airs[1::2] += 0.1 # Why are we adding here - I don't think that is right...
+        self.dt_airs[1::2] += 0.1  # Adjust odd frame integration times
 
         self.dt_fgs = np.ones(fgs_frames) * 0.1
-        self.dt_fgs[1::2] += 0.1 # This one looks more correct
+        self.dt_fgs[1::2] += 0.1  # Adjust odd frame integration times
