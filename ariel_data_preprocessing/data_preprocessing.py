@@ -8,6 +8,7 @@ correlated double sampling (CDS), and flat field correction.
 # Standard library imports
 import os
 from multiprocessing import Manager, Process
+from random import shuffle
 
 # Third party imports
 import h5py
@@ -171,13 +172,13 @@ class DataProcessor:
         self.output_filename = output_filename
         self.fgs_frames = fgs_frames
         self.airs_frames = airs_frames
+        self.cut_inf = cut_inf
+        self.cut_sup = cut_sup
         self.gain = gain
         self.offset = offset
         self.inclusion_threshold = inclusion_threshold
         self.smooth = smooth
         self.smoothing_window = smoothing_window
-        self.cut_inf = cut_inf
-        self.cut_sup = cut_sup
         self.n_cpus = n_cpus
         self.n_planets = n_planets
         self.downsample_fgs = downsample_fgs
@@ -495,9 +496,27 @@ class DataProcessor:
 
             signal = (signal - row_means[np.newaxis, :]) / row_stds[np.newaxis, :]
 
+            # Step 11: Sample the frames
+
+            # Generate shuffled indices
+            indices = list(range(signal.shape[0]))
+            shuffle(indices)
+
+            # Batch the indices into groups of sample_size, dropping the last batch if incomplete
+            sample_indices = np.array_split(indices, self.sample_size)
+
+            if len(sample_indices[-1]) != len(sample_indices[0]):
+                sample_indices = sample_indices[:-1]
+
+            # Generate samples
+            print(f'Generating {len(list(sample_indices))} samples for planet {planet}')
+            samples = [signal[list(batch), :] for batch in sample_indices]
+
+            # Collect result and submit to output worker
             result = {
                 'planet': planet,
-                'signal': signal
+                'signal': signal,
+                'samples': samples
             }
 
             output_queue.put(result)
@@ -540,11 +559,26 @@ class DataProcessor:
         # Track progress
         output_count = 0
 
-        # Load labels
-        labels = pd.read_csv(
-            f'{self.input_data_path}/train.csv',
-            index_col='planet_id'
-        )
+        # Load labels, if we have them
+        try:
+            save_labels = True
+            labels = pd.read_csv(
+                f'{self.input_data_path}/train.csv',
+                index_col='planet_id'
+            )
+
+        except Exception as e:
+            print(f'Error loading labels: {e}')
+            save_labels = False
+
+        # Set output compression
+        if self.compress_output:
+            compression='gzip'
+            compression_opts=9
+
+        else:
+            compression=None
+            compression_opts=None
 
         while True:
 
@@ -563,54 +597,58 @@ class DataProcessor:
                 # Unpack workunit
                 planet = result['planet']
                 signal = result['signal']
+                samples = result['samples']
 
-                # Get true spectrum for this planet
-                true_spectrum = labels.loc[int(planet)].to_numpy(dtype=np.float64)
+                # Get true spectrum for this planet, if we have it
+                if save_labels:
+                    true_spectrum = labels.loc[int(planet)].to_numpy(dtype=np.float64)
 
                 with h5py.File(self.output_filepath, 'a') as hdf:
 
                     try:
 
-                        # Create groups for this planet
+                        # Save complete spectrum and mask
                         planet_group = hdf.require_group(planet)
 
-                        # Write signals and masks
-                        if self.compress_output:
+                        _ = planet_group.create_dataset(
+                            'signal',
+                            data=signal.data,
+                            compression=compression,
+                            compression_opts=compression_opts
+                        )
 
-                            _ = planet_group.create_dataset(
-                                'signal',
-                                data=signal.data,
-                                compression='gzip',
-                                compression_opts=9
-                            )
-
-                            _ = planet_group.create_dataset(
-                                'mask',
-                                data=signal.mask[0],
-                                compression='gzip',
-                                compression_opts=9
-                            )
-
+                        _ = planet_group.create_dataset(
+                            'mask',
+                            data=signal.mask[0],
+                            compression=compression,
+                            compression_opts=compression_opts
+                        )
+                            
+                        if save_labels:
                             _ = planet_group.create_dataset(
                                 'spectrum',
                                 data=true_spectrum,
-                                compression='gzip',
-                                compression_opts=9
+                                compression=compression,
+                                compression_opts=compression_opts
                             )
 
-                        else:
-                            _ = planet_group.create_dataset(
-                                'signal',
-                                data=signal.data
-                            )
-                            _ = planet_group.create_dataset(
-                                'mask',
-                                data=signal.mask[0]
+                        # Save samples
+                        for i, sample in enumerate(samples):
+
+                            sample_group = hdf.require_group(f'{planet}_{i}')
+
+                            _ = sample_group.create_dataset(
+                                f'signal',
+                                data=sample.data,
+                                compression=compression,
+                                compression_opts=compression_opts
                             )
 
-                            _ = planet_group.create_dataset(
-                                'spectrum',
-                                data=true_spectrum
+                            _ = sample_group.create_dataset(
+                                f'spectrum',
+                                data=sample.mask[0],
+                                compression=compression,
+                                compression_opts=compression_opts
                             )
 
                         output_count += 1
