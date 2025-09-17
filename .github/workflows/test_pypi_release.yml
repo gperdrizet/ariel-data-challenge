@@ -32,9 +32,9 @@ jobs:
         run: |
           pip install -r build_requirements.txt
 
-      - name: Test data preprocessor
+      - name: Test data processor
         run: |
-          python -m unittest tests/test_data_preprocessor.py
+          python -m unittest tests/test_data_processor.py
 
       - name: Test signal correction functions
         run: |
