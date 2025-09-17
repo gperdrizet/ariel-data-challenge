@@ -5,10 +5,14 @@
 
 This module contains the complete FGS1 and AIRS-CH0 signal data preprocessing pipeline for the Ariel Data Challenge.
 
-## Submodules
+## Overview
+
+The `DataProcessor` class provides an integrated pipeline that combines:
 
 1. **Signal correction** - Complete 6-step calibration pipeline for raw telescope data
 2. **Signal extraction** - Intelligent data reduction and spectral signal extraction
+
+This unified approach transforms raw Ariel telescope data directly into extracted, science-ready spectral time series in a single processing step.
 
 ## 1. Signal correction
 
@@ -36,9 +40,9 @@ See the following notebooks for implementation details and performance analysis:
 **Example use:**
 
 ```python
-from ariel_data_preprocessing.signal_correction import SignalCorrection
+from ariel_data_preprocessing.data_preprocessing import DataProcessor
 
-signal_correction = SignalCorrection(
+data_processor = DataProcessor(
     input_data_path='data/raw',
     output_data_path='data/corrected',
     n_cpus=4,
@@ -46,7 +50,7 @@ signal_correction = SignalCorrection(
     n_planets=100
 )
 
-signal_correction.run()
+data_processor.run()
 ```
 
 The signal correction pipeline will write the corrected frames and hot/dead pixel masks as an HDF5 archive called `train.h5` by default with the following structure:
@@ -55,25 +59,21 @@ The signal correction pipeline will write the corrected frames and hot/dead pixe
     train.h5:
     │
     ├── planet_id_1/
-    │   ├── AIRS-CH0_signal   # Corrected spectrometer data
-    │   ├── AIRS-CH0_mask    # Mask for spectrometer data
-    │   ├── FGS1_signal      # Corrected guidance camera data
-    │   └── FGS1_mask        # Mask for guidance camera data
+    │   ├── signal  # Combined corrected/extracted spectral time series
+    │   └── mask    # Dead/hot pixel mask for spectra
     |
     ├── planet_id_2/
-    │   ├── AIRS-CH0_signal  # Corrected spectrometer data
-    │   ├── AIRS-CH0_mask    # Mask for spectrometer data
-    │   ├── FGS1_signal      # Corrected guidance camera data
-    │   └── FGS1_mask        # Mask for guidance camera data
+    │   ├── signal  
+    │   └── mask    
     |
-    └── ...
+    └── planet_id_n/
 ```
 
 ## 2. Signal extraction
 
-**Complete extraction pipeline for both AIRS-CH0 and FGS1 data**
+**Complete extraction pipeline integrated with DataProcessor**
 
-Takes signal corrected data from `SignalCorrection()` and extracts clean spectral signals through intelligent pixel selection and data reduction. This module transforms 3D detector arrays into focused time series suitable for exoplanet atmospheric analysis.
+The signal extraction functionality is integrated within the `DataProcessor` class, which handles both signal correction and extraction in a unified pipeline. This approach transforms 3D detector arrays into focused time series suitable for exoplanet atmospheric analysis.
 
 **Processing Features:**
 - **AIRS-CH0 Extraction**: Selects brightest detector rows containing spectral traces, sums to create 1D spectra per frame
@@ -97,19 +97,20 @@ See the following notebooks for implementation details and analysis:
 
 **Example usage:**
 
-```python
-from ariel_data_preprocessing.signal_extraction import SignalExtraction
+The signal extraction is performed as part of the integrated `DataProcessor` pipeline:
 
-signal_extraction = SignalExtraction(
-    input_data_path='data/corrected',
-    output_data_path='data/extracted',
-    input_filename='train.h5',
+```python
+from ariel_data_preprocessing.data_preprocessing import DataProcessor
+
+data_processor = DataProcessor(
+    input_data_path='data/raw',
+    output_data_path='data/processed',
     inclusion_threshold=0.75,
     smooth=True,
     smoothing_window=200
 )
 
-output_file = signal_extraction.run()
+data_processor.run()
 ```
 
 Output data will be written to `train.h5` by default in the directory passed to `output_data_path`. The structure of the HDF5 archive combines both AIRS-CH0 and FGS1 signals:
@@ -125,7 +126,7 @@ Output data will be written to `train.h5` by default in the directory passed to 
     │   ├── signal  # Shape: (n_frames, n_wavelengths + 1) - FGS1 + AIRS-CH0  
     │   └── mask    # Shape: (n_wavelengths + 1,) - combined mask
     │
-    └── ...
+    └── planet_n/
 ```
 
 **Note**: The first column of the `signal` dataset contains the extracted FGS1 brightness time series, followed by the AIRS-CH0 spectral channels. This structure facilitates easy transit detection using FGS1 data while providing wavelength-dependent atmospheric information from AIRS-CH0.
