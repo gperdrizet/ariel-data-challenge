@@ -489,6 +489,12 @@ class DataProcessor:
                     self.smoothing_window
                 )
 
+            # Step 10: Standardize each wavelength across frames
+            row_means = np.mean(signal, axis=0)
+            row_stds = np.std(signal, axis=0)
+
+            signal = (signal - row_means[np.newaxis, :]) / row_stds[np.newaxis, :]
+
             result = {
                 'planet': planet,
                 'signal': signal
@@ -534,6 +540,12 @@ class DataProcessor:
         # Track progress
         output_count = 0
 
+        # Load labels
+        labels = pd.read_csv(
+            f'{self.input_data_path}/train.csv',
+            index_col='planet_id'
+        )
+
         while True:
 
             # Get the next result from the output queue
@@ -551,6 +563,9 @@ class DataProcessor:
                 # Unpack workunit
                 planet = result['planet']
                 signal = result['signal']
+
+                # Get true spectrum for this planet
+                true_spectrum = labels.loc[int(planet)].to_numpy(dtype=np.float64)
 
                 with h5py.File(self.output_filepath, 'a') as hdf:
 
@@ -576,6 +591,13 @@ class DataProcessor:
                                 compression_opts=9
                             )
 
+                            _ = planet_group.create_dataset(
+                                'spectrum',
+                                data=true_spectrum,
+                                compression='gzip',
+                                compression_opts=9
+                            )
+
                         else:
                             _ = planet_group.create_dataset(
                                 'signal',
@@ -584,6 +606,11 @@ class DataProcessor:
                             _ = planet_group.create_dataset(
                                 'mask',
                                 data=signal.mask[0]
+                            )
+
+                            _ = planet_group.create_dataset(
+                                'spectrum',
+                                data=true_spectrum
                             )
 
                         output_count += 1
