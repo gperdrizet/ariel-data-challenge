@@ -96,7 +96,7 @@ jobs:
           name: release-dists
           path: dist/
 
-      - name: Publish release distributions to test PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://test.pypi.org/legacy/
+      # - name: Publish release distributions to test PyPI
+      #   uses: pypa/gh-action-pypi-publish@release/v1
+      #   with:
+      #     repository-url: https://test.pypi.org/legacy/
