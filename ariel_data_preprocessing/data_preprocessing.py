@@ -6,7 +6,6 @@ correlated double sampling (CDS), and flat field correction.
 '''
 
 # Standard library imports
-import itertools
 import os
 from multiprocessing import Manager, Process
 
@@ -14,14 +13,15 @@ from multiprocessing import Manager, Process
 import h5py
 import numpy as np
 import pandas as pd
-from astropy.stats import sigma_clip
 
 # Internal imports
+import ariel_data_preprocessing.signal_correction_functions as correction_funcs
+import ariel_data_preprocessing.signal_extraction_functions as extraction_funcs
 from ariel_data_preprocessing.calibration_data import CalibrationData
 from ariel_data_preprocessing.utils import get_planet_list
 
 
-class SignalCorrection:
+class DataProcessor:
     '''
     Complete signal correction and calibration pipeline for Ariel telescope data.
     
@@ -50,14 +50,14 @@ class SignalCorrection:
         - Intelligent FGS downsampling (83% data reduction)
     
     Example:
-        >>> corrector = SignalCorrection(
+        >>> processor = DataProcessor(
         ...     input_data_path='data/raw',
         ...     output_data_path='data/corrected',
         ...     n_cpus=4,
         ...     downsample_fgs=True,
         ...     n_planets=100
         ... )
-        >>> corrector.run()
+        >>> processor.run()
     
     Input Requirements:
         - Works with Ariel Data Challenge (2025) dataset from Kaggle
@@ -91,18 +91,14 @@ class SignalCorrection:
             train.h5:
             │
             ├── planet_id_1/
-            │   ├── AIRS-CH0_signal  # Corrected spectrometer data
-            │   ├── AIRS-CH0_mask    # Mask for spectrometer data
-            │   ├── FGS1_signal      # Corrected guidance camera data
-            │   └── FGS1_mask        # Mask for guidance camera data
+            │   ├── signal  # Combined corrected/extracted spectral time series
+            │   └── mask    # Dead/hot pixel mask for spectra
             |
             ├── planet_id_2/
-            │   ├── AIRS-CH0_signal  # Corrected spectrometer data
-            │   ├── AIRS-CH0_mask    # Mask for spectrometer data
-            │   ├── FGS1_signal      # Corrected guidance camera data
-            │   └── FGS1_mask        # Mask for guidance camera data
+            │   ├── signal  
+            │   └── mask    
             |
-            └── ...
+            └── planet_id_n/
     '''
 
     def __init__(
@@ -122,6 +118,9 @@ class SignalCorrection:
             cut_sup: int = 321,
             gain: float = 0.4369,
             offset: float = -1000.0,
+            inclusion_threshold: float = 0.75,
+            smooth: bool = True,
+            smoothing_window: int = 200,
             n_cpus: int = 1,
             n_planets: int = -1,
             downsample_fgs: bool = False,
@@ -129,7 +128,7 @@ class SignalCorrection:
             verbose: bool = False
     ):
         '''
-        Initialize the SignalCorrection class with processing parameters.
+        Initialize the DataProcessor class with processing parameters.
         
         Parameters:
             - input_data_path (str): Path to directory containing raw Ariel telescope data
@@ -157,6 +156,7 @@ class SignalCorrection:
             ValueError: If input_data_path or output_data_path are None
         '''
         
+        # Check required parameters
         if input_data_path is None or output_data_path is None:
             raise ValueError("Input and output data paths must be provided.")
         
@@ -173,6 +173,9 @@ class SignalCorrection:
         self.airs_frames = airs_frames
         self.gain = gain
         self.offset = offset
+        self.inclusion_threshold = inclusion_threshold
+        self.smooth = smooth
+        self.smoothing_window = smoothing_window
         self.cut_inf = cut_inf
         self.cut_sup = cut_sup
         self.n_cpus = n_cpus
@@ -202,7 +205,7 @@ class SignalCorrection:
 
         # Set downsampling indices for FGS data
         if self.downsample_fgs:
-            self.fgs_indices = self._fgs_downsamples()
+            self.fgs_indices = correction_funcs.fgs_downsamples(self.fgs_frames)
 
 
     def run(self):
@@ -258,7 +261,7 @@ class SignalCorrection:
 
             worker_processes.append(
                 Process(
-                    target=self.correct_signal,
+                    target=self.process_data,
                     args=(input_queue, output_queue)
                 )
             )
@@ -294,7 +297,7 @@ class SignalCorrection:
         output_process.close()
 
 
-    def correct_signal(self, input_queue, output_queue):
+    def process_data(self, input_queue, output_queue):
         '''
         Worker process function that applies the complete signal correction pipeline.
         
@@ -332,15 +335,18 @@ class SignalCorrection:
         '''
 
         while True:
+
+            # Get the next planet ID from the input queue
             planet = input_queue.get()
 
+            # Check for stop signal
             if planet == 'STOP':
                 result = {
                     'planet': 'STOP',
-                    'airs_signal': None,
-                    'fgs_signal': None
+                    'signal': None,
                 }
                 output_queue.put(result)
+
                 break
 
             # Get path to this planet's data
@@ -364,13 +370,25 @@ class SignalCorrection:
             # Load and reshape the AIRS-CH0 data
             airs_signal = pd.read_parquet(
                 f'{planet_path}/AIRS-CH0_signal_0.parquet'
-            ).to_numpy().reshape(self.airs_frames, 32, 356)[:, :, self.cut_inf:self.cut_sup]
+            ).to_numpy().reshape(
+                self.airs_frames, 32, 356
+            )[:, :, self.cut_inf:self.cut_sup]
 
             # Convert to float64 from unit16
             airs_signal = airs_signal.astype(np.float64)
 
             # Get frame count
             airs_frames = airs_signal.shape[0]
+
+            if airs_frames != fgs_frames:
+                raise ValueError(
+                    f'Frame count mismatch for planet {planet}'
+                )
+            
+            if airs_frames < self.smoothing_window:
+                raise ValueError(
+                    f'Not enough frames for smoothing for planet {planet}'
+                )
 
             # Load and prep calibration data
             calibration_data = CalibrationData(
@@ -384,18 +402,18 @@ class SignalCorrection:
 
             # Step 1: ADC conversion
             if self.adc_conversion:
-                airs_signal = self._ADC_convert(airs_signal)
-                fgs_signal = self._ADC_convert(fgs_signal)
+                airs_signal = correction_funcs.ADC_convert(airs_signal, self.gain, self.offset)
+                fgs_signal = correction_funcs.ADC_convert(fgs_signal, self.gain, self.offset)
 
             # Step 2: Mask hot/dead pixels
             if self.masking:
-                airs_signal = self._mask_hot_dead(
+                airs_signal = correction_funcs.mask_hot_dead(
                     airs_signal,
                     calibration_data.dead_airs,
                     calibration_data.dark_airs
                 )
 
-                fgs_signal = self._mask_hot_dead(
+                fgs_signal = correction_funcs.mask_hot_dead(
                     fgs_signal,
                     calibration_data.dead_fgs,
                     calibration_data.dark_fgs
@@ -403,26 +421,26 @@ class SignalCorrection:
 
             # Step 3: Linearity correction
             if self.linearity_correction:
-                airs_signal = self._apply_linear_corr(
+                airs_signal = correction_funcs.apply_linear_corr(
                     calibration_data.linear_corr_airs,
                     airs_signal
                 )
 
-                fgs_signal = self._apply_linear_corr(
+                fgs_signal = correction_funcs.apply_linear_corr(
                     calibration_data.linear_corr_fgs,
                     fgs_signal
                 )
 
             # Step 4: Dark current subtraction
             if self.dark_subtraction:
-                airs_signal = self._clean_dark(
+                airs_signal = correction_funcs.clean_dark(
                     airs_signal,
                     calibration_data.dead_airs,
                     calibration_data.dark_airs,
                     calibration_data.dt_airs
                 )
 
-                fgs_signal = self._clean_dark(
+                fgs_signal = correction_funcs.clean_dark(
                     fgs_signal,
                     calibration_data.dead_fgs,
                     calibration_data.dark_fgs,
@@ -431,219 +449,54 @@ class SignalCorrection:
 
             # Step 5: Correlated Double Sampling (CDS)
             if self.cds_subtraction:
-                airs_signal = self._get_cds(airs_signal)
-                fgs_signal = self._get_cds(fgs_signal) 
+                airs_signal = correction_funcs.get_cds(airs_signal)
+                fgs_signal = correction_funcs.get_cds(fgs_signal)
 
             # Step 6: Flat field correction
             if self.flat_field_correction:
-                airs_signal = self._correct_flat_field(
+                airs_signal = correction_funcs.correct_flat_field(
                     airs_signal,
                     calibration_data.flat_airs,
                     calibration_data.dead_airs
                 )
 
-                fgs_signal = self._correct_flat_field(
+                fgs_signal = correction_funcs.correct_flat_field(
                     fgs_signal,
                     calibration_data.flat_fgs,
                     calibration_data.dead_fgs
                 )
 
+            # Step 7: Extract signal
+            airs_signal = extraction_funcs.extract_airs_signal(
+                airs_signal,
+                inclusion_threshold=self.inclusion_threshold
+            )
+
+            fgs_signal = extraction_funcs.extract_fgs_signal(
+                fgs_signal,
+                inclusion_threshold=self.inclusion_threshold
+            )
+
+            # Step 8: Combine AIRS-CH0 and FGS1 signals, handling the masks separately
+            signal = np.insert(airs_signal, 0, fgs_signal, axis=1)
+            mask = np.insert(airs_signal.mask, 0, fgs_signal.mask, axis=1)
+            signal = np.ma.MaskedArray(signal, mask=mask)   
+            
+            # Step 9: Smooth each wavelength across the frames
+            if self.smooth:
+                signal = extraction_funcs.moving_average_rows(
+                    signal,
+                    self.smoothing_window
+                )
+
             result = {
                 'planet': planet,
-                'airs_signal': airs_signal,
-                'fgs_signal': fgs_signal
+                'signal': signal
             }
 
             output_queue.put(result)
 
         return True
-
-
-    def _ADC_convert(self, signal):
-        '''
-        Step 1: Convert raw detector counts to physical units.
-        
-        Applies analog-to-digital conversion correction using gain and offset
-        values from the adc_info.csv file.
-        
-        Args:
-            signal (np.ndarray): Raw detector signal
-            
-        Returns:
-            np.ndarray: ADC-corrected signal
-        '''
-        signal = signal.astype(np.float64)
-        signal /= self.gain    # Apply gain correction
-        signal += self.offset  # Apply offset correction
-
-        return signal
-
-
-    def _mask_hot_dead(self, signal, dead, dark):
-        '''
-        Step 2: Mask hot and dead pixels in the detector.
-        
-        Hot pixels are identified using sigma clipping on dark frames.
-        Dead pixels are provided in the calibration data.
-        
-        Args:
-            signal (np.ndarray): Input signal array
-            dead (np.ndarray): Dead pixel mask from calibration
-            dark (np.ndarray): Dark frame for hot pixel detection
-            
-        Returns:
-            np.ma.MaskedArray: Signal with hot/dead pixels masked
-        '''
-        # Identify hot pixels using 5-sigma clipping on dark frame
-        hot = sigma_clip(
-            dark, sigma=5, maxiters=5
-        ).mask
-        
-        # Tile masks to match signal dimensions
-        hot = np.tile(hot, (signal.shape[0], 1, 1))
-        dead = np.tile(dead, (signal.shape[0], 1, 1))
-        
-        # Apply masks to signal
-        signal = np.ma.masked_where(dead, signal)
-        signal = np.ma.masked_where(hot, signal)
-
-        return signal
-    
-
-    def _apply_linear_corr(self, linear_corr, signal):
-        '''
-        Step 3: Apply linearity correction to detector response.
-        
-        Corrects for non-linear detector response using polynomial
-        coefficients from calibration data.
-        
-        Args:
-            linear_corr (np.ndarray): Polynomial coefficients for linearity correction
-            signal (np.ndarray): Input signal array
-            
-        Returns:
-            np.ndarray: Linearity-corrected signal
-        '''
-        # Flip coefficients for correct polynomial order
-        linear_corr = np.flip(linear_corr, axis=0)
-
-        axis_one = signal.shape[1]
-        axis_two = signal.shape[2]
-        
-        # Apply polynomial correction pixel by pixel
-        for x, y in itertools.product(range(axis_one), range(axis_two)):
-            poli = np.poly1d(linear_corr[:, x, y])
-            signal[:, x, y] = poli(signal[:, x, y])
-
-        return signal
-    
-
-    def _clean_dark(self, signal, dead, dark, dt):
-        '''
-        Step 4: Subtract dark current from signal.
-        
-        Removes thermal background scaled by integration time.
-        
-        Args:
-            signal (np.ndarray): Input signal array
-            dead (np.ndarray): Dead pixel mask
-            dark (np.ndarray): Dark frame
-            dt (np.ndarray): Integration time for each frame
-            
-        Returns:
-            np.ndarray: Dark-corrected signal
-        '''
-
-        # Mask dead pixels in dark frame
-        dark = np.ma.masked_where(dead, dark)
-        dark = np.tile(dark, (signal.shape[0], 1, 1))
-
-        # Subtract scaled dark current
-        signal -= dark * dt[:, np.newaxis, np.newaxis]
-
-        return signal
-    
-
-    def _get_cds(self, signal):
-        '''
-        Step 5: Apply Correlated Double Sampling (CDS).
-        
-        Subtracts alternating exposure pairs to remove read noise.
-        This reduces the number of frames by half.
-        
-        Args:
-            signal (np.ndarray): Input signal array
-            
-        Returns:
-            np.ndarray: CDS-processed signal (half the input frames)
-        '''
-        # Subtract even frames from odd frames
-        cds = signal[1::2,:,:] - signal[::2,:,:]
-
-        return cds
-
-
-    def _correct_flat_field(self, signal, flat, dead):
-        '''
-        Step 6: Apply flat field correction.
-        
-        Normalizes pixel-to-pixel sensitivity variations using
-        flat field calibration data.
-        
-        Args:
-            signal (np.ndarray): Input signal array
-            flat (np.ndarray): Flat field frame
-            dead (np.ndarray): Dead pixel mask
-            
-        Returns:
-            np.ndarray: Flat field corrected signal
-        '''
-        # Transpose flat field to match signal orientation
-        signal = signal.transpose(0, 2, 1)
-        flat = flat.transpose(1, 0)
-        dead = dead.transpose(1, 0)
-        
-        # Mask dead pixels in flat field
-        flat = np.ma.masked_where(dead, flat)
-        flat = np.tile(flat, (signal.shape[0], 1, 1))
-        
-        # Apply flat field correction
-        signal = signal / flat
-
-        return signal.transpose(0, 2, 1)
-
-
-    def _fgs_downsamples(self):
-        '''
-        Generate downsampling indices for FGS signal to match AIRS cadence.
-        
-        Creates an index array for downsampling FGS1 data from 135,000 frames
-        to match the AIRS-CH0 frame rate. Preserves the correlated double sampling
-        (CDS) structure by taking frame pairs at regular intervals.
-        
-        Downsampling Strategy:
-            - Take every 24th frame pair (frames n and n+1)
-            - Reduces data volume by ~83% (135k → 22.5k frames)
-            - Maintains temporal alignment with AIRS-CH0 observations
-            - Preserves CDS structure for proper noise reduction
-        
-        Returns:
-            np.ndarray: Sorted array of frame indices to extract from FGS data
-            
-        Example:
-            For n=24, generates indices: [0, 1, 24, 25, 48, 49, ...]
-            This creates pairs for CDS while dramatically reducing data volume.
-        '''
-        n = 24  # Take 2 elements, skip 20
-        indices_to_take = np.arange(0, self.fgs_frames, n)  # Start from 0, step by n
-        indices_to_take = np.concatenate([  # Add the next index
-            indices_to_take,
-            indices_to_take + 1
-        ])
-
-        indices_to_take = np.sort(indices_to_take).astype(int)
-
-        return indices_to_take
     
 
     def _save_corrected_data(self, output_queue):
@@ -664,7 +517,7 @@ class SignalCorrection:
         
         Parameters:
             output_queue (multiprocessing.Queue): Queue containing corrected signal data
-                Expected format: {'planet': str, 'airs_signal': ndarray, 'fgs_signal': ndarray}
+                Expected format: {'planet': str, 'signal': ndarray}
                 
         Returns:
             bool: True when all data has been saved and workers terminated
@@ -682,8 +535,11 @@ class SignalCorrection:
         output_count = 0
 
         while True:
+
+            # Get the next result from the output queue
             result = output_queue.get()
 
+            # Check for stop signals from workers
             if result['planet'] == 'STOP':
                 stop_count += 1
 
@@ -691,9 +547,10 @@ class SignalCorrection:
                     break
 
             else:
+
+                # Unpack workunit
                 planet = result['planet']
-                airs_signal = result['airs_signal']
-                fgs_signal = result['fgs_signal']
+                signal = result['signal']
 
                 with h5py.File(self.output_filepath, 'a') as hdf:
 
@@ -702,46 +559,38 @@ class SignalCorrection:
                         # Create groups for this planet
                         planet_group = hdf.require_group(planet)
 
-                        # Create datasets for AIRS-CH0 and FGS1 signals
+                        # Write signals and masks
                         if self.compress_output:
 
                             _ = planet_group.create_dataset(
-                                'AIRS-CH0_signal',
-                                data=airs_signal.data,
+                                'signal',
+                                data=signal.data,
                                 compression='gzip',
                                 compression_opts=9
                             )
 
                             _ = planet_group.create_dataset(
-                                'AIRS-CH0_mask',
-                                data=airs_signal.mask[0],
+                                'mask',
+                                data=signal.mask[0],
                                 compression='gzip',
                                 compression_opts=9
                             )
 
-                            _ = planet_group.create_dataset(
-                                'FGS1_signal',
-                                data=fgs_signal.data,
-                                compression='gzip',
-                                compression_opts=9
-                            )
-
-                            _ = planet_group.create_dataset(
-                                'FGS1_mask',
-                                data=fgs_signal.mask[0],
-                                compression='gzip',
-                                compression_opts=9)
                         else:
-                            
-                            _ = planet_group.create_dataset('AIRS-CH0_signal',data=airs_signal.data)
-                            _ = planet_group.create_dataset('AIRS-CH0_mask',data=airs_signal.mask[0])
-                            _ = planet_group.create_dataset('FGS1_signal',data=fgs_signal.data)
-                            _ = planet_group.create_dataset('FGS1_mask',data=fgs_signal.mask[0])
+                            _ = planet_group.create_dataset(
+                                'signal',
+                                data=signal.data
+                            )
+                            _ = planet_group.create_dataset(
+                                'mask',
+                                data=signal.mask[0]
+                            )
 
                         output_count += 1
 
                         if self.verbose:
-                            print(f'Corrected signal for planet {output_count} of {len(self.planet_list)}', end='\r')
+                            print(f'Processed signal for planet {output_count} ' +
+                                  f'of {len(self.planet_list)}', end='\r')
 
                     except TypeError as e:
                         print(f'Error writing data for planet {planet}: {e}')
