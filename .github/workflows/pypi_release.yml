@@ -32,13 +32,21 @@ jobs:
         run: |
           pip install -r build_requirements.txt
 
-      - name: Test signal correction
+      - name: Test data preprocessor
+        run: |
+          python -m unittest tests/test_data_preprocessor.py
+
+      - name: Test signal correction functions
         run: |
           python -m unittest tests/test_signal_correction.py
 
-      - name: Test signal extraction
+      - name: Test signal extraction functions
         run: |
           python -m unittest tests/test_signal_extraction.py
+
+      - name: Test utility functions
+        run: |
+          python -m unittest tests/test_utility_functions.py
 
   build-release:
     name: Build release distribution
