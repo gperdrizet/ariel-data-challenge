@@ -64,8 +64,8 @@ STD_FIG_DPI = 100
 #############################################################
 import os
 
-# USER = os.environ['POSTGRES_USER']
-# PASSWD = os.environ['POSTGRES_PASSWD']
-# HOST = os.environ['POSTGRES_HOST']
-# PORT = os.environ['POSTGRES_PORT']
-# STUDY_NAME = 'ariel_data'
+USER = os.environ['POSTGRES_USER']
+PASSWD = os.environ['POSTGRES_PASSWD']
+HOST = os.environ['POSTGRES_HOST']
+PORT = os.environ['POSTGRES_PORT']
+STUDY_NAME = 'ariel'
