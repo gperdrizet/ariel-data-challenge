@@ -496,27 +496,10 @@ class DataProcessor:
 
             signal = (signal - row_means[np.newaxis, :]) / row_stds[np.newaxis, :]
 
-            # Step 11: Sample the frames
-
-            # Generate shuffled indices
-            indices = list(range(signal.shape[0]))
-            shuffle(indices)
-
-            # Batch the indices into groups of sample_size, dropping the last batch if incomplete
-            sample_indices = np.array_split(indices, self.sample_size)
-
-            if len(sample_indices[-1]) != len(sample_indices[0]):
-                sample_indices = sample_indices[:-1]
-
-            # Generate samples
-            print(f'Generating {len(list(sample_indices))} samples for planet {planet}')
-            samples = [signal[list(batch), :] for batch in sample_indices]
-
             # Collect result and submit to output worker
             result = {
                 'planet': planet,
-                'signal': signal,
-                'samples': samples
+                'signal': signal
             }
 
             output_queue.put(result)
@@ -597,7 +580,6 @@ class DataProcessor:
                 # Unpack workunit
                 planet = result['planet']
                 signal = result['signal']
-                samples = result['samples']
 
                 # Get true spectrum for this planet, if we have it
                 if save_labels:
@@ -628,25 +610,6 @@ class DataProcessor:
                             _ = planet_group.create_dataset(
                                 'spectrum',
                                 data=true_spectrum,
-                                compression=compression,
-                                compression_opts=compression_opts
-                            )
-
-                        # Save samples
-                        for i, sample in enumerate(samples):
-
-                            sample_group = hdf.require_group(f'{planet}_{i}')
-
-                            _ = sample_group.create_dataset(
-                                f'signal',
-                                data=sample.data,
-                                compression=compression,
-                                compression_opts=compression_opts
-                            )
-
-                            _ = sample_group.create_dataset(
-                                f'spectrum',
-                                data=sample.mask[0],
                                 compression=compression,
                                 compression_opts=compression_opts
                             )
