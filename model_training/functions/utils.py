@@ -2,6 +2,7 @@
 
 # Standard library imports
 import datetime
+import os
 import random
 import shutil
 from functools import partial
@@ -16,6 +17,24 @@ import tensorflow as tf
 import configuration as config
 from model_training.functions.model_definitions import cnn
 
+# Deal with tensorboard log directory
+try:
+    shutil.rmtree(f'{config.TENSORBOARD_LOG_DIR}')
+except FileNotFoundError:
+    pass
+
+Path(config.TENSORBOARD_LOG_DIR).mkdir(parents=True, exist_ok=True)
+
+# Set memory growth for GPUs
+gpus = tf.config.experimental.list_physical_devices('GPU')
+
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    
+    except RuntimeError as e:
+        print(e)
 
 def data_loader(planet_ids: list, data_file: str, sample_size: int = 100):
     '''Generator that yields signal, spectrum pairs for training/validation/testing.
@@ -95,6 +114,7 @@ def create_datasets(
 
 
 def training_run(
+        worker_num: int,
         training_planet_ids: list,
         validation_planet_ids: list,
         sample_size: int,
@@ -109,6 +129,15 @@ def training_run(
         steps: int
 ) -> float:
     '''Function to run a single training session with fixed hyperparameters.'''
+
+    print(f'\nWorker {worker_num} starting training')
+    gpus = tf.config.list_physical_devices('GPU')
+
+    if (worker_num + 1) % 2 == 0:
+        tf.config.set_visible_devices(gpus[0], 'GPU')
+
+    else:
+        tf.config.set_visible_devices(gpus[1], 'GPU')
 
     # Create the training and validation datasets
     training_dataset, validation_dataset = create_datasets(
@@ -136,7 +165,7 @@ def training_run(
         steps_per_epoch=steps,
         validation_steps=steps,
         verbose=0,
-        callbacks=[early_stopping_callback(), tensorboard_callback()]
+        callbacks=[early_stopping_callback(), tensorboard_callback(worker_num)]
     )
 
     # Evaluate the model on the validation dataset and return the RMSE
@@ -149,19 +178,11 @@ def training_run(
     return rmse
 
 
-def tensorboard_callback():
+def tensorboard_callback(worker_num: int):
     '''Function to create a TensorBoard callback with a unique log directory.'''
 
-    # Deal with tensorboard log directory
-    try:
-        shutil.rmtree(config.TENSORBOARD_LOG_DIR)
-    except FileNotFoundError:
-        pass
-    
-    Path(config.TENSORBOARD_LOG_DIR).mkdir(parents=True, exist_ok=True)
-
     # Set tensorboard callback
-    log_dir = config.TENSORBOARD_LOG_DIR + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_dir = config.TENSORBOARD_LOG_DIR + f'{worker_num}-{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}'
     tensorboard_callback = tf.keras.callbacks.TensorBoard(
         log_dir=log_dir,
         histogram_freq=1

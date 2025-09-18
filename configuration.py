@@ -63,6 +63,7 @@ STD_FIG_DPI = 100
 # CNN hyperparameters #######################################
 #############################################################
 
+NUM_WORKERS = 8
 FRAMES = 100
 WAVELENGTHS = 283
 EPOCHS = 100

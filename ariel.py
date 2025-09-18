@@ -3,11 +3,15 @@
 # Standard library imports
 import argparse
 import time
+import multiprocessing as mp
 
 # Internal imports
 import configuration as config
 from ariel_data_preprocessing.data_preprocessing import DataProcessor
 from model_training import optimize_cnn
+
+mp.set_start_method('spawn', force=True)
+
 if __name__ == '__main__':
 
     parser=argparse.ArgumentParser()
@@ -44,7 +48,8 @@ if __name__ == '__main__':
         print('\nStarting CNN hyperparameter optimization...')
         start_time = time.time()
 
-        optimize_cnn.run()
+        with mp.Pool(processes=config.NUM_WORKERS) as pool:
+            pool.map(optimize_cnn.run, range(config.NUM_WORKERS))
 
         elapsed_time = time.time() - start_time
         print(f'\nCNN hyperparameter optimization complete in {elapsed_time/(60 * 60):.2f} hours\n')
