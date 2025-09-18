@@ -78,6 +78,23 @@ STEPS = 50
 TENSORBOARD_LOG_DIR = 'model_training/logs/'
 
 #############################################################
+# CNN hyperparameters distributions for Optuna ##############
+#############################################################
+
+hyperparams = {
+    'sample_size': (50, 100, 200),
+    'learning_rate': (1e-5, 1e-2, 'log'),
+    'l_one': (1e-10, 1e-2, 'log'),
+    'l_two': (1e-10, 1e-2, 'log'),
+    'first_filter_set': (8, 16, 32),
+    'second_filter_set': (16, 32, 64),
+    'third_filter_set': (32, 64, 128),
+    'filter_size': (2, 3, 4),
+    'batch_size': (1, 2, 4, 8, 16, 32),
+    'steps': (10, 25, 50, 100, 200)
+}
+
+#############################################################
 # Optuna RDB credentials ####################################
 #############################################################
 import os
