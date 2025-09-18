@@ -64,7 +64,7 @@ STD_FIG_DPI = 100
 #############################################################
 
 NUM_WORKERS = 8
-FRAMES = 100
+SAMPLES = 100
 WAVELENGTHS = 283
 EPOCHS = 100
 LEARNING_RATE = 0.001
@@ -74,6 +74,7 @@ FILTER_NUMS = [32, 64, 128]
 FILTER_SIZE = (3, 3)
 BATCH_SIZE = 32
 EPOCHS = 20
+STEPS = 50
 TENSORBOARD_LOG_DIR = 'model_training/logs/'
 
 #############################################################
