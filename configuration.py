@@ -81,7 +81,7 @@ TENSORBOARD_LOG_DIR = 'model_training/logs/'
 # CNN hyperparameters distributions for Optuna ##############
 #############################################################
 
-hyperparams = {
+HYPERPARAMS = {
     'sample_size': (50, 100, 200),
     'learning_rate': (1e-5, 1e-2, 'log'),
     'l_one': (1e-10, 1e-2, 'log'),
