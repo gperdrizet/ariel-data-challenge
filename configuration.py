@@ -73,6 +73,7 @@ FILTER_NUMS = [32, 64, 128]
 FILTER_SIZE = (3, 3)
 BATCH_SIZE = 32
 EPOCHS = 20
+TENSORBOARD_LOG_DIR = 'model_training/logs/'
 
 #############################################################
 # Optuna RDB credentials ####################################
