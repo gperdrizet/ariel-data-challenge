@@ -7,7 +7,6 @@ from pathlib import Path
 # Third party imports
 import h5py
 import numpy as np
-import numpy.ma as ma
 
 
 def get_planet_list(input_data: str):
@@ -38,26 +37,47 @@ def get_planet_list(input_data: str):
 
 def load_masked_frames(
         hdf: h5py.File,
-        planet: str
-) -> ma.MaskedArray:
+        planet: str,
+        load_mask: bool = True,
+        return_id: bool = False,
+        verbose: bool = False
+) -> np.ma.MaskedArray:
     '''
     Load the masked frames for a given planet from the HDF5 file.
 
     Parameters:
         hdf (h5py.File): Open HDF5 file object
         planet (str): Planet ID string, or 'random' for a random planet
+        verbose (bool): If True, print available groups in the HDF5 file
 
     Returns:
         np.ma.MaskedArray: Masked array representing the mask for the planet
     '''
 
+    if verbose:
+
+        print(f'Groups:')
+
+        for id in hdf.keys():
+            print(f' {id}')
+
     if planet == 'random':
         planet = np.random.choice(list(hdf.keys()))
 
     frames = hdf[planet]['signal'][:]
-    mask = hdf[planet]['mask'][:]
-    
-    mask = np.tile(mask, (frames.shape[0], 1, 1))
-    frames = ma.MaskedArray(frames, mask=mask)
+
+    if load_mask:
+        try:
+            mask = hdf[planet]['mask'][:]
+            mask = np.tile(mask, (frames.shape[0], 1, 1))
+            frames = np.ma.MaskedArray(frames, mask=mask)
+
+        except KeyError:
+            if verbose:
+                print(f'No mask found for planet {planet}.')
+            pass
+
+    if return_id:
+        return frames, planet
 
     return frames

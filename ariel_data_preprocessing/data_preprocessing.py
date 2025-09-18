@@ -8,6 +8,7 @@ correlated double sampling (CDS), and flat field correction.
 # Standard library imports
 import os
 from multiprocessing import Manager, Process
+from random import shuffle
 
 # Third party imports
 import h5py
@@ -171,13 +172,13 @@ class DataProcessor:
         self.output_filename = output_filename
         self.fgs_frames = fgs_frames
         self.airs_frames = airs_frames
+        self.cut_inf = cut_inf
+        self.cut_sup = cut_sup
         self.gain = gain
         self.offset = offset
         self.inclusion_threshold = inclusion_threshold
         self.smooth = smooth
         self.smoothing_window = smoothing_window
-        self.cut_inf = cut_inf
-        self.cut_sup = cut_sup
         self.n_cpus = n_cpus
         self.n_planets = n_planets
         self.downsample_fgs = downsample_fgs
@@ -489,6 +490,13 @@ class DataProcessor:
                     self.smoothing_window
                 )
 
+            # Step 10: Standardize each wavelength across frames
+            row_means = np.mean(signal, axis=0)
+            row_stds = np.std(signal, axis=0)
+
+            signal = (signal - row_means[np.newaxis, :]) / row_stds[np.newaxis, :]
+
+            # Collect result and submit to output worker
             result = {
                 'planet': planet,
                 'signal': signal
@@ -534,6 +542,27 @@ class DataProcessor:
         # Track progress
         output_count = 0
 
+        # Load labels, if we have them
+        try:
+            save_labels = True
+            labels = pd.read_csv(
+                f'{self.input_data_path}/train.csv',
+                index_col='planet_id'
+            )
+
+        except Exception as e:
+            print(f'Error loading labels: {e}')
+            save_labels = False
+
+        # Set output compression
+        if self.compress_output:
+            compression='gzip'
+            compression_opts=9
+
+        else:
+            compression=None
+            compression_opts=None
+
         while True:
 
             # Get the next result from the output queue
@@ -552,38 +581,37 @@ class DataProcessor:
                 planet = result['planet']
                 signal = result['signal']
 
+                # Get true spectrum for this planet, if we have it
+                if save_labels:
+                    true_spectrum = labels.loc[int(planet)].to_numpy(dtype=np.float64)
+
                 with h5py.File(self.output_filepath, 'a') as hdf:
 
                     try:
 
-                        # Create groups for this planet
+                        # Save complete spectrum and mask
                         planet_group = hdf.require_group(planet)
 
-                        # Write signals and masks
-                        if self.compress_output:
+                        _ = planet_group.create_dataset(
+                            'signal',
+                            data=signal.data,
+                            compression=compression,
+                            compression_opts=compression_opts
+                        )
 
+                        _ = planet_group.create_dataset(
+                            'mask',
+                            data=signal.mask[0],
+                            compression=compression,
+                            compression_opts=compression_opts
+                        )
+                            
+                        if save_labels:
                             _ = planet_group.create_dataset(
-                                'signal',
-                                data=signal.data,
-                                compression='gzip',
-                                compression_opts=9
-                            )
-
-                            _ = planet_group.create_dataset(
-                                'mask',
-                                data=signal.mask[0],
-                                compression='gzip',
-                                compression_opts=9
-                            )
-
-                        else:
-                            _ = planet_group.create_dataset(
-                                'signal',
-                                data=signal.data
-                            )
-                            _ = planet_group.create_dataset(
-                                'mask',
-                                data=signal.mask[0]
+                                'spectrum',
+                                data=true_spectrum,
+                                compression=compression,
+                                compression_opts=compression_opts
                             )
 
                         output_count += 1

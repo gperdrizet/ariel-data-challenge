@@ -60,12 +60,29 @@ STD_FIG_WIDTH = 6
 STD_FIG_DPI = 100
 
 #############################################################
+# CNN hyperparameters #######################################
+#############################################################
+
+NUM_WORKERS = 8
+FRAMES = 100
+WAVELENGTHS = 283
+EPOCHS = 100
+LEARNING_RATE = 0.001
+L1_PENALTY = None
+L2_PENALTY = None
+FILTER_NUMS = [32, 64, 128]
+FILTER_SIZE = (3, 3)
+BATCH_SIZE = 32
+EPOCHS = 20
+TENSORBOARD_LOG_DIR = 'model_training/logs/'
+
+#############################################################
 # Optuna RDB credentials ####################################
 #############################################################
 import os
 
-# USER = os.environ['POSTGRES_USER']
-# PASSWD = os.environ['POSTGRES_PASSWD']
-# HOST = os.environ['POSTGRES_HOST']
-# PORT = os.environ['POSTGRES_PORT']
-# STUDY_NAME = 'ariel_data'
+USER = os.environ['POSTGRES_USER']
+PASSWD = os.environ['POSTGRES_PASSWD']
+HOST = os.environ['POSTGRES_HOST']
+PORT = os.environ['POSTGRES_PORT']
+STUDY_NAME = 'ariel'

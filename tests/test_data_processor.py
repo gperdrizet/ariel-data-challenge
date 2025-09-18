@@ -132,9 +132,10 @@ class TestDataProcessor(unittest.TestCase):
             expected_frames = (self.airs_signal.shape[0] // 2) - self.data_processor.smoothing_window + 1
             expected_wavelengths = 282 + 1  # 282 AIRS + 1 FGS
 
-            self.assertEqual(len(hdf[self.planet]), 2)
+            self.assertEqual(len(hdf[self.planet]), 3) # Signal, mask, spectrum
             self.assertTrue('signal' in hdf[self.planet])
             self.assertTrue('mask' in hdf[self.planet])
+            self.assertTrue('spectrum' in hdf[self.planet])
             self.assertTrue(hdf[self.planet]['signal'].shape[0] == expected_frames)
             self.assertTrue(hdf[self.planet]['signal'].shape[1] == expected_wavelengths)
             self.assertTrue(hdf[self.planet]['mask'].shape[0] == expected_wavelengths)
