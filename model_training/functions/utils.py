@@ -3,7 +3,9 @@
 # Standard library imports
 import datetime
 import random
+import shutil
 from functools import partial
+from pathlib import Path
 
 # Third party imports
 import h5py
@@ -126,23 +128,6 @@ def training_run(
         filter_size=filter_size
     )
 
-    # Set early stopping callback
-    early_stopping_callback = tf.keras.callbacks.EarlyStopping(
-        monitor='val_loss',
-        patience=10,
-        min_delta=0.000005,
-        mode='min',
-        verbose=1,
-        restore_best_weights=True
-    )
-
-    # Set tensorboard callback
-    log_dir = config.TENSORBOARD_LOG_DIR + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    tensorboard_callback = tf.keras.callbacks.TensorBoard(
-        log_dir=log_dir,
-        histogram_freq=1
-    )
-
     # Train the model
     model.fit(
         training_dataset.batch(batch_size),
@@ -151,7 +136,7 @@ def training_run(
         steps_per_epoch=steps,
         validation_steps=steps,
         verbose=0,
-        callbacks=[early_stopping_callback, tensorboard_callback]
+        callbacks=[early_stopping_callback(), tensorboard_callback()]
     )
 
     # Evaluate the model on the validation dataset and return the RMSE
@@ -162,3 +147,38 @@ def training_run(
     )['RMSE']
 
     return rmse
+
+
+def tensorboard_callback():
+    '''Function to create a TensorBoard callback with a unique log directory.'''
+
+    # Deal with tensorboard log directory
+    try:
+        shutil.rmtree(config.TENSORBOARD_LOG_DIR)
+    except FileNotFoundError:
+        pass
+    
+    Path(config.TENSORBOARD_LOG_DIR).mkdir(parents=True, exist_ok=True)
+
+    # Set tensorboard callback
+    log_dir = config.TENSORBOARD_LOG_DIR + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(
+        log_dir=log_dir,
+        histogram_freq=1
+    )
+
+    return tensorboard_callback
+
+def early_stopping_callback():
+    '''Function to create an early stopping callback.'''
+
+    early_stopping_callback = tf.keras.callbacks.EarlyStopping(
+        monitor='val_loss',
+        patience=10,
+        min_delta=0.000005,
+        mode='min',
+        verbose=1,
+        restore_best_weights=True
+    )
+
+    return early_stopping_callback

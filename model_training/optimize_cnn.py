@@ -17,14 +17,6 @@ from model_training.functions.utils import training_run
 def run():
     '''Main function to start Optuna optimization run.'''
 
-    # Deal with tensorboard log directory
-    try:
-        shutil.rmtree(config.TENSORBOARD_LOG_DIR)
-    except FileNotFoundError:
-        pass
-    
-    Path(config.TENSORBOARD_LOG_DIR).mkdir(parents=True, exist_ok=True)
-
     # Load corrected/extracted data for a sample planet
     with h5py.File(f'{config.PROCESSED_DATA_DIRECTORY}/train.h5', 'r') as hdf:
         planet_ids = list(hdf.keys())
