@@ -2,8 +2,6 @@
 
 # Standard library imports
 import random
-import shutil
-from pathlib import Path
 
 # Third party imports
 import h5py
