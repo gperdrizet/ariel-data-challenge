@@ -2,7 +2,7 @@
 workers. Only optimizable hyperparameter is learning rate. All others
 set to small-ish fixed values.'''
 
-RUNS = 10
+RUNS = 3
 
 # Third party imports
 import optuna
@@ -38,7 +38,7 @@ def objective(
         dense_units=32,
         batch_size=8,
         steps=20,
-        epochs=50
+        epochs=10
     )
     
     return rmse
@@ -46,8 +46,6 @@ def objective(
 
 def run(worker_num: int) -> None:
     '''Main function to start Optuna optimization run.'''
-
-    print(f'Starting GPU worker {worker_num}')
 
     run_assets = setup_optuna_run()
 
