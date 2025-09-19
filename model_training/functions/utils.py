@@ -226,7 +226,7 @@ def early_stopping_callback() -> tf.keras.callbacks.EarlyStopping:
 
     early_stopping_callback = tf.keras.callbacks.EarlyStopping(
         monitor='val_loss',
-        patience=10,
+        patience=20,
         min_delta=1e-4,
         mode='min',
         verbose=0,
