@@ -15,7 +15,9 @@ METADATA_DIRECTORY = f'{DATA_DIRECTORY}/metadata'
 CORRECTED_DATA_DIRECTORY = f'{DATA_DIRECTORY}/corrected'
 PROCESSED_DATA_DIRECTORY = f'{DATA_DIRECTORY}/processed'
 EXPERIMENT_RESULTS_DIRECTORY = f'{DATA_DIRECTORY}/experiment_results'
+MODELS_DIRECTORY = f'{DATA_DIRECTORY}/models'
 FIGURES_DIRECTORY = './figures'
+TENSORBOARD_LOG_DIR = f'model_training/logs/'
 
 # Planet to use for demonstration plotting, sample frames etc.
 SAMPLE_PLANET = '342072318'
@@ -23,6 +25,8 @@ SAMPLE_PLANET = '342072318'
 # Number of frames to save for unittesting
 SAMPLE_FRAMES = 50
 
+# Number of wavelength channels in the spectra
+WAVELENGTHS = 283
 
 #############################################################
 # Figure colors #############################################
@@ -58,23 +62,6 @@ FGS1_HEATMAP_CMAP = 'RdGy'
 
 STD_FIG_WIDTH = 6
 STD_FIG_DPI = 100
-
-#############################################################
-# CNN hyperparameters #######################################
-#############################################################
-
-NUM_WORKERS = 8
-FRAMES = 100
-WAVELENGTHS = 283
-EPOCHS = 100
-LEARNING_RATE = 0.001
-L1_PENALTY = None
-L2_PENALTY = None
-FILTER_NUMS = [32, 64, 128]
-FILTER_SIZE = (3, 3)
-BATCH_SIZE = 32
-EPOCHS = 20
-TENSORBOARD_LOG_DIR = 'model_training/logs/'
 
 #############################################################
 # Optuna RDB credentials ####################################

@@ -3,7 +3,7 @@ layout: post
 title: "Wavelength Smoothing: Taming Spectral Noise for Clean Time Series"
 ---
 
-With clean spectral signals extracted from the AIRS-CH0 detector rows, the next challenge emerges: individual wavelength channels are incredibly noisy. Each extracted time series shows significant frame-to-frame variations that could mask the subtle exoplanet atmospheric signals we're trying to detect. Time for some advanced noise reduction.
+With clean spectral signals extracted from the AIRS-CH0 and FGS1 detectors, the next challenge emerges: individual wavelength channels are incredibly noisy. Each extracted time series shows significant frame-to-frame variations that could mask the subtle exoplanet atmospheric signals we're trying to detect. Time for some smoothing.
 
 Checkout the [wavelength smoothing notebook](https://github.com/gperdrizet/ariel-data-challenge/blob/main/notebooks/02.5-wavelength_smoothing.ipynb) on GitHub.
 
@@ -30,7 +30,17 @@ For processing 1100+ planets within Kaggle's time constraints, the moving averag
 The key insight is using cumulative sums for O(n) moving average computation instead of O(n×w) sliding window calculations:
 
 ```python
-def moving_average_rows(a, n):
+def moving_average_rows(a: np.ndarray, n: int) -> np.ndarray:
+    '''Moving average smoothing
+
+    Args:
+      a: frame time series for one planet
+      n: smoothing window width
+
+    Returns:
+      Smoothed data, number of frames will be less by 0.5 * n
+    '''
+
     # Compute cumulative sum along axis 1 (across columns)
     cumsum_vec = np.cumsum(a, axis=1, dtype=float)
     
@@ -41,11 +51,11 @@ def moving_average_rows(a, n):
     return cumsum_vec[:, n - 1:] / n
 ```
 
-This approach scales beautifully - it can smooth all wavelength channels simultaneously with minimal computational overhead.
+This approach scales beautifully - it can smooth all wavelength channels across a sequence of frames simultaneously with minimal computational overhead.
 
 ## 3. Spectral time series results
 
-Applying the moving average smoothing to the entire extracted dataset produces remarkably clean spectral time series:
+Applying the moving average smoothing to the extracted data and standardizing each wavelength produces remarkably clean spectral time series:
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_extraction/02.5.2-smoothed_wavelength_spectrogram.jpg" alt="Smoothed spectral time series">
@@ -53,12 +63,12 @@ Applying the moving average smoothing to the entire extracted dataset produces r
 
 The smoothed spectrogram reveals several important features:
 
-- **Clear temporal structure**: Systematic variations that likely correspond to the exoplanet transit
+- **Clear temporal structure**: Systematic variations that correspond to the exoplanet transit
 - **Reduced noise floor**: Frame-to-frame variations are dramatically suppressed
 
 ## 4. Exoplanet transit signal
 
-The total signal per frame now looks even better - yes that is a scatter plot!
+The total signal per frame now looks even better - yes that is a scatter plot on the right!
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/gperdrizet/ariel-data-challenge/refs/heads/main/figures/signal_extraction/02.5.3-transit_plot_total_vs_wavelength_smoothed.jpg" alt="Smoothed spectral time series">
@@ -90,4 +100,4 @@ When enabled, the smoothing is applied to each wavelength channel independently,
 
 Check it out on PyPI: [ariel-data-preprocessing](https://pypi.org/project/ariel-data-preprocessing/)
 
-The journey from raw detector counts to science-ready spectral time series is complete - time to start hunting for exoplanet atmospheres!
+The journey from raw detector counts to science-ready spectral time series almost complete. Next up, a cool trick to generate more diversity in dataset and a path to uncertainty estimation...
