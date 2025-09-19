@@ -3,17 +3,16 @@
 # Third party imports
 import tensorflow as tf
 
-# Local imports
-import configuration as config
 
 def cnn(
-        frames: int=config.FRAMES,
-        wavelengths: int=config.WAVELENGTHS,
-        learning_rate: float=config.LEARNING_RATE,
-        l1: float=config.L1_PENALTY,
-        l2: float=config.L2_PENALTY,
-        filter_nums=config.FILTER_NUMS,
-        filter_size=config.FILTER_SIZE
+        samples: int,
+        wavelengths: int,
+        learning_rate: float,
+        l1: float,
+        l2: float,
+        filter_nums: list,
+        filter_sizes: list,
+        dense_units: int
 ) -> tf.keras.Model:
 
     '''Builds the convolutional neural network regression model'''
@@ -23,31 +22,31 @@ def cnn(
 
     # Define the model layers in order
     model = tf.keras.Sequential([
-        tf.keras.layers.Input((frames,wavelengths,1)),
+        tf.keras.layers.Input((samples,wavelengths,1)),
         tf.keras.layers.Conv2D(
             filter_nums[0],
-            filter_size,
+            filter_sizes[0],
             padding='same',
             activation='relu',
         ),
         tf.keras.layers.MaxPooling2D(),
         tf.keras.layers.Conv2D(
             filter_nums[1],
-            filter_size,
+            filter_sizes[1],
             padding='same',
             activation='relu',
         ),
         tf.keras.layers.MaxPooling2D(),
         tf.keras.layers.Conv2D(
             filter_nums[2],
-            filter_size,
+            filter_sizes[2],
             padding='same',
             activation='relu',
         ),
         tf.keras.layers.MaxPooling2D(),
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(
-            128,
+            dense_units,
             kernel_regularizer=regularizer,
             activation='relu',
         ),

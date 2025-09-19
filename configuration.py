@@ -16,6 +16,7 @@ CORRECTED_DATA_DIRECTORY = f'{DATA_DIRECTORY}/corrected'
 PROCESSED_DATA_DIRECTORY = f'{DATA_DIRECTORY}/processed'
 EXPERIMENT_RESULTS_DIRECTORY = f'{DATA_DIRECTORY}/experiment_results'
 FIGURES_DIRECTORY = './figures'
+TENSORBOARD_LOG_DIR = f'model_training/logs/'
 
 # Planet to use for demonstration plotting, sample frames etc.
 SAMPLE_PLANET = '342072318'
@@ -23,6 +24,8 @@ SAMPLE_PLANET = '342072318'
 # Number of frames to save for unittesting
 SAMPLE_FRAMES = 50
 
+# Number of wavelength channels in the spectra
+WAVELENGTHS = 283
 
 #############################################################
 # Figure colors #############################################
@@ -58,41 +61,6 @@ FGS1_HEATMAP_CMAP = 'RdGy'
 
 STD_FIG_WIDTH = 6
 STD_FIG_DPI = 100
-
-#############################################################
-# CNN hyperparameters #######################################
-#############################################################
-
-NUM_WORKERS = 8
-SAMPLES = 100
-WAVELENGTHS = 283
-EPOCHS = 100
-LEARNING_RATE = 0.001
-L1_PENALTY = None
-L2_PENALTY = None
-FILTER_NUMS = [32, 64, 128]
-FILTER_SIZE = (3, 3)
-BATCH_SIZE = 32
-EPOCHS = 20
-STEPS = 50
-TENSORBOARD_LOG_DIR = 'model_training/logs/'
-
-#############################################################
-# CNN hyperparameters distributions for Optuna ##############
-#############################################################
-
-HYPERPARAMS = {
-    'sample_size': (50, 100, 200),
-    'learning_rate': (1e-5, 1e-2, 'log'),
-    'l_one': (1e-10, 1e-2, 'log'),
-    'l_two': (1e-10, 1e-2, 'log'),
-    'first_filter_set': (8, 16, 32),
-    'second_filter_set': (16, 32, 64),
-    'third_filter_set': (32, 64, 128),
-    'filter_size': (2, 3, 4),
-    'batch_size': (1, 2, 4, 8, 16, 32),
-    'steps': (10, 25, 50, 100, 200)
-}
 
 #############################################################
 # Optuna RDB credentials ####################################
