@@ -18,7 +18,7 @@ import tensorflow as tf
 
 # Local imports
 import configuration as config
-from model_training.functions.model_definitions import cnn
+from model_training.functions.model_definitions import cnn, variable_depth_cnn
 
 
 # Make sure the TensorBoard log directory exists
@@ -61,24 +61,17 @@ def setup_optuna_run() -> dict:
 
 
 def training_run(
+        model_type: str,
         worker_num: int,
         training_planet_ids: list,
         validation_planet_ids: list,
-        sample_size: tuple,
-        learning_rate: tuple,
-        l1: tuple,
-        l2: tuple,
-        first_filter_set: tuple,
-        second_filter_set: tuple,
-        third_filter_set: tuple,
-        first_filter_size: tuple,
-        second_filter_size: tuple,
-        third_filter_size: tuple,
-        dense_units: tuple,
-        batch_size: tuple,
-        steps: tuple,
-        epochs: int
+        epochs: int,
+        sample_size: int,
+        batch_size: int,
+        steps: int,
+        **hyperparameters
 ) -> float:
+
     '''Function to run a single training session with fixed hyperparameters.'''
 
     gpus = tf.config.list_physical_devices('GPU')
@@ -96,17 +89,21 @@ def training_run(
         sample_size=sample_size
     )
 
-    # Build the CNN model with the suggested hyperparameters
-    model = cnn(
-        samples=sample_size,
-        wavelengths=config.WAVELENGTHS,
-        learning_rate=learning_rate,
-        l1=l1,
-        l2=l2,
-        filter_nums=[first_filter_set, second_filter_set, third_filter_set],
-        filter_sizes=[first_filter_size, second_filter_size, third_filter_size],
-        dense_units=dense_units
-    )
+    # Build the model with the suggested hyperparameters
+
+    if model_type == 'cnn':
+
+        model = cnn(
+            samples=sample_size,
+            **hyperparameters
+        )
+
+    elif model_type == 'variable_depth_cnn':
+
+        model = variable_depth_cnn(
+            samples=sample_size,
+            **hyperparameters
+        )
 
     # Train the model
     model.fit(
@@ -122,7 +119,7 @@ def training_run(
     # Evaluate the model on the validation dataset and return the RMSE
     rmse = model.evaluate(
         validation_dataset.batch(batch_size),
-        steps=550, # Evaluate one sample from each validation planet
+        steps=len(validation_planet_ids) // batch_size, # Evaluate one sample from each validation planet
         return_dict=True,
         verbose=0
     )['RMSE']
