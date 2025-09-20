@@ -16,7 +16,7 @@ mp.set_start_method('spawn', force=True)
 if __name__ == '__main__':
 
     parser=argparse.ArgumentParser()
-    
+
     parser.add_argument(
         '--task',
         choices=['preprocess_data', 'optimize_cnn'],
