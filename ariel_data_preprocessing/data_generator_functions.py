@@ -2,6 +2,8 @@
 
 # Standard library imports
 from functools import partial
+from pathlib import Path
+import pickle
 import random
 
 # Third party imports
@@ -98,20 +100,47 @@ def _testing_data_loader(planet_ids: list, data_file: str, sample_size: int = 10
 
 def make_training_datasets(
         data_file: str,
+        output_data_path: str,
         sample_size: int,
         n_samples: int,
         wavelengths: int,
         validation: bool
 ) -> tuple:
-
+    
     with h5py.File(data_file, 'r') as hdf:
         planet_ids = list(hdf.keys())
 
     random.shuffle(planet_ids)
 
     if validation:
-        training_planet_ids = planet_ids[:len(planet_ids) // 2]
-        validation_planet_ids = planet_ids[len(planet_ids) // 2:]
+
+        planet_ids_file = f'{output_data_path}/training_validation_split_planet_ids.pkl'
+
+        if Path(planet_ids_file).exists():
+
+            with open(planet_ids_file, 'rb') as input_file:
+                planet_ids = pickle.load(input_file)
+                training_planet_ids = planet_ids['training']
+                validation_planet_ids = planet_ids['validation']
+
+            print('Loaded existing training/validation split')
+
+        else:
+            
+            print('Creating new training/validation split')
+
+            random.shuffle(planet_ids)
+            training_planet_ids = planet_ids[:len(planet_ids) // 2]
+            validation_planet_ids = planet_ids[len(planet_ids) // 2:]
+
+            # Save the training and validation planet IDs
+            planet_ids = {
+                'training': training_planet_ids,
+                'validation': validation_planet_ids
+            }
+
+            with open(planet_ids_file, 'wb') as output_file:
+                pickle.dump(planet_ids, output_file)
 
     else:
         training_planet_ids = planet_ids

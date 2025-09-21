@@ -642,12 +642,14 @@ class DataProcessor:
                         print(f'Workunit was: {result}')
 
         return True
-    
+
+
     def initialize_data_generators(self, sample_size: int = 500, validation: bool = True, n_samples: int = 10):
 
         if self.mode == 'train':
             self.training, self.validation, self.evaluation = make_training_datasets(
                 data_file=self.output_filepath,
+                output_data_path=self.output_data_path,
                 sample_size=sample_size,
                 n_samples=n_samples,
                 wavelengths=self.wavelengths,
