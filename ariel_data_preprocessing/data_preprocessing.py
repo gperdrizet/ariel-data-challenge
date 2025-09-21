@@ -202,6 +202,7 @@ class DataProcessor:
         if self.mode == 'test':
             self.training = None
             self.validation = None
+            self.evaluation = None
 
         elif mode == 'train':
             self.testing = None
@@ -645,9 +646,10 @@ class DataProcessor:
     def initialize_data_generators(self, sample_size: int = 500, validation: bool = True, n_samples: int = 10):
 
         if self.mode == 'train':
-            self.training, self.validation = make_training_datasets(
+            self.training, self.validation, self.evaluation = make_training_datasets(
                 data_file=self.output_filepath,
                 sample_size=sample_size,
+                n_samples=n_samples,
                 wavelengths=self.wavelengths,
                 validation=validation
             )
