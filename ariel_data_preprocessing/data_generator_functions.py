@@ -161,6 +161,7 @@ def make_training_datasets(
     )
 
     validation_dataset = None
+    evaluation_dataset = None
 
     if validation:
         validation_data_generator = partial(

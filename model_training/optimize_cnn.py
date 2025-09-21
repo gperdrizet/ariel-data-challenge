@@ -29,22 +29,26 @@ def objective(
         learning_rate=trial.suggest_float('learning_rate', 1e-15, 1e-3),
         l1=trial.suggest_float('l_one', 1e-11, 1.0),
         l2=trial.suggest_float('l_two', 1e-11, 1.0),
-        cnn_layers=trial.suggest_categorical('cnn_layers', [1, 2, 3]),
+        cnn_layers=trial.suggest_categorical('cnn_layers', [1, 2, 3, 4, 5]),
         first_filter_set=trial.suggest_int('first_filter_set', 16, 128, step=1),
         second_filter_set=trial.suggest_int('second_filter_set', 16, 64, step=1),
         third_filter_set=trial.suggest_int('third_filter_set', 16, 64, step=1),
-        first_filter_size=trial.suggest_int('first_filter_size', 2, 3, step=1),
+        fourth_filter_set=trial.suggest_int('fourth_filter_set', 16, 64, step=1),
+        fifth_filter_set=trial.suggest_int('fifth_filter_set', 16, 64, step=1),
+        first_filter_size=trial.suggest_int('first_filter_size', 2, 6, step=1),
         second_filter_size=trial.suggest_int('second_filter_size', 2, 6, step=1),
-        third_filter_size=trial.suggest_int('third_filter_size', 2, 4, step=1),
+        third_filter_size=trial.suggest_int('third_filter_size', 2, 6, step=1),
+        fourth_filter_size=trial.suggest_int('fourth_filter_size', 2, 6, step=1),
+        fifth_filter_size=trial.suggest_int('fifth_filter_size', 2, 6, step=1),
         dense_layers=trial.suggest_categorical('dense_layers', [1, 2, 3]),
-        first_dense_units=trial.suggest_int('first_dense_units', 16, 128, step=1),
-        second_dense_units=trial.suggest_int('second_dense_units', 16, 128, step=1),
-        third_dense_units=trial.suggest_int('third_dense_units', 16, 128, step=1),
-        beta_one=0.72,
-        beta_two=0.93,
-        amsgrad=True,
-        weight_decay=0.016,
-        use_ema=True
+        first_dense_units=trial.suggest_int('first_dense_units', 8, 32, step=1),
+        second_dense_units=trial.suggest_int('second_dense_units', 8, 32, step=1),
+        third_dense_units=trial.suggest_int('third_dense_units', 8, 32, step=1),
+        beta_one=trial.suggest_float('beta_one', 0.5, 1.0),
+        beta_two=trial.suggest_float('beta_two', 0.5, 1.0),
+        amsgrad=trial.suggest_categorical('amsgrad', [True, False]),
+        weight_decay=trial.suggest_float('weight_decay', 0.0, 0.1),
+        use_ema=trial.suggest_categorical('use_ema', [True, False])
     )
     
     return rmse
@@ -57,7 +61,7 @@ def run(worker_num: int) -> None:
 
     # Define the study
     study = optuna.create_study(
-        study_name='cnn_optimization',
+        study_name='deeper_cnn_optimization',
         direction='minimize',
         storage=run_assets['storage_name'],
         load_if_exists=True

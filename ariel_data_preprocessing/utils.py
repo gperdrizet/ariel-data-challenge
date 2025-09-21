@@ -1,6 +1,7 @@
 '''Utility/helper functions for Ariel data preprocessing.'''
 
 # Standard library imports
+import glob
 import os
 from pathlib import Path
 
@@ -23,20 +24,18 @@ def get_planet_list(input_data: str, mode: str) -> list:
     Returns:
         list: List of unique planet IDs
     '''
+
+    planets = None
         
     if Path(input_data).is_dir():
 
         planets = list(os.listdir(f'{input_data}/{mode}'))
         planets = [planet_path.split('/')[-1] for planet_path in planets]
 
-        if len(planets) == 0:
-            raise ValueError('No planet directories found in input data path.')
-        
-        else:
-            return planets
-        
-    else:
-        raise ValueError('Input is not a valid path')
+    if planets is None or len(planets) == 0:
+        raise ValueError(f'No planet directories found in {input_data}/{mode}.')
+
+    return planets
 
 
 def load_masked_frames(

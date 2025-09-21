@@ -207,14 +207,12 @@ class DataProcessor:
         elif mode == 'train':
             self.testing = None
 
+        # Set placeholder for the planet list
+        # to be filled in when run() is called
+        self.planet_list = None
+
         # Set output filepath
         self.output_filepath = (f'{self.output_data_path}/{self.output_filename}')
-
-        # Get planet list from input data
-        self.planet_list = get_planet_list(self.input_data_path, mode=self.mode)
-
-        if self.n_planets != -1:
-            self.planet_list = self.planet_list[:self.n_planets]
 
 
     def run(self):
@@ -263,6 +261,12 @@ class DataProcessor:
 
         except OSError:
             pass
+
+        # Get planet list from input data
+        self.planet_list = get_planet_list(self.input_data_path, mode=self.mode)
+
+        if self.n_planets != -1:
+            self.planet_list = self.planet_list[:self.n_planets]
 
         # Set downsampling indices for FGS data
         if self.downsample_fgs:

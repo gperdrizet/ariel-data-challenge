@@ -121,6 +121,28 @@ def variable_depth_cnn(
             tf.keras.layers.MaxPooling2D(),
         ]
 
+    if hyperparameters.cnn_layers > 3:
+        layers += [
+            tf.keras.layers.Conv2D(
+                hyperparameters.fourth_filter_set,
+                hyperparameters.fourth_filter_size,
+                padding='same',
+                activation='relu',
+            ),
+            tf.keras.layers.MaxPooling2D(),
+        ]
+
+    if hyperparameters.cnn_layers > 4:
+        layers += [
+            tf.keras.layers.Conv2D(
+                hyperparameters.fifth_filter_set,
+                hyperparameters.fifth_filter_size,
+                padding='same',
+                activation='relu',
+            ),
+            tf.keras.layers.MaxPooling2D(),
+        ]
+
     layers += [
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(
