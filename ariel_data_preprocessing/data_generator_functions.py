@@ -34,7 +34,7 @@ def _training_data_loader(planet_ids: list, data_file: str, sample_size: int = 1
                 indices = random.sample(range(signal.shape[0]), sample_size)
                 sample = signal[sorted(indices), :]
 
-                yield sample, np.log(spectrum)
+                yield sample, spectrum
 
 
 def _evaluation_data_loader(
