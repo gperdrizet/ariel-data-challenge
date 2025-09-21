@@ -206,28 +206,14 @@ class DataProcessor:
         elif mode == 'train':
             self.testing = None
 
-        # Make sure output directory exists
-        os.makedirs(self.output_data_path, exist_ok=True)
-
         # Set output filepath
         self.output_filepath = (f'{self.output_data_path}/{self.output_filename}')
-        
-        # Remove output hdf5 file, if it already exists
-        try:
-            os.remove(self.output_filepath)
-
-        except OSError:
-            pass
 
         # Get planet list from input data
         self.planet_list = get_planet_list(self.input_data_path, mode=self.mode)
 
         if self.n_planets != -1:
             self.planet_list = self.planet_list[:self.n_planets]
-
-        # Set downsampling indices for FGS data
-        if self.downsample_fgs:
-            self.fgs_indices = correction_funcs.fgs_downsamples(self.fgs_frames)
 
 
     def run(self):
@@ -266,6 +252,20 @@ class DataProcessor:
             - Spawns and manages multiple worker processes
             - Prints progress information to stdout
         '''
+
+        # Make sure output directory exists
+        os.makedirs(self.output_data_path, exist_ok=True)
+
+        # Remove output hdf5 file, if it already exists
+        try:
+            os.remove(self.output_filepath)
+
+        except OSError:
+            pass
+
+        # Set downsampling indices for FGS data
+        if self.downsample_fgs:
+            self.fgs_indices = correction_funcs.fgs_downsamples(self.fgs_frames)
 
         # Start the multiprocessing manager
         manager = Manager()
@@ -642,13 +642,14 @@ class DataProcessor:
 
         return True
     
-    def initialize_data_generators(self, sample_size: int = 500, n_samples: int = 10):
+    def initialize_data_generators(self, sample_size: int = 500, validation: bool = True, n_samples: int = 10):
 
         if self.mode == 'train':
             self.training, self.validation = make_training_datasets(
                 data_file=self.output_filepath,
                 sample_size=sample_size,
-                wavelengths=self.wavelengths
+                wavelengths=self.wavelengths,
+                validation=validation
             )
 
         elif self.mode == 'test':
