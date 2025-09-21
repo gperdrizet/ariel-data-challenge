@@ -23,6 +23,15 @@ if __name__ == '__main__':
         help='task to run'
     )
 
+    parser.add_argument(
+        '--clear_tensorboard_logs', 
+        type=str, 
+        default='False', 
+        help='Delete Tensorboard logs from previous run (optional)'
+    )
+
+
+
     args=parser.parse_args()
 
     if args.task == 'preprocess_training_data':
@@ -71,7 +80,11 @@ if __name__ == '__main__':
     if args.task == 'optimize_cnn':
 
         print('\nStarting CNN hyperparameter optimization...')
-        #clear_tensorboard_logs()
+
+        if args.clear_tensorboard_logs.lower() in ['true', '1', 'yes']:
+            print('Clearing Tensorboard logs from previous run...')
+            clear_tensorboard_logs()
+
         start_time = time.time()
 
         with mp.Pool(processes=2) as pool:
