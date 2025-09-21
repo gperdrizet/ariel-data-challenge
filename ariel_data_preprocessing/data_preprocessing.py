@@ -19,6 +19,7 @@ import pandas as pd
 import ariel_data_preprocessing.signal_correction_functions as correction_funcs
 import ariel_data_preprocessing.signal_extraction_functions as extraction_funcs
 from ariel_data_preprocessing.calibration_data import CalibrationData
+from ariel_data_preprocessing.data_generator_functions import make_training_datasets, make_testing_dataset
 from ariel_data_preprocessing.utils import get_planet_list
 
 
@@ -122,6 +123,7 @@ class DataProcessor:
             inclusion_threshold: float = 0.75,
             smooth: bool = True,
             smoothing_window: int = 200,
+            wavelengths: int = 283,
             n_cpus: int = 1,
             n_planets: int = -1,
             downsample_fgs: bool = False,
@@ -148,6 +150,10 @@ class DataProcessor:
             - cut_sup (int, default=321): Upper bound for AIRS spectral cropping  
             - gain (float, default=0.4369): ADC gain factor from adc_info.csv
             - offset (float, default=-1000.0): ADC offset value from adc_info.csv
+            - smoothing_window (int, default=200): Window size for moving average smoothing
+            - inclusion_threshold (float, default=0.75): Pixel inclusion threshold for extraction
+            - smooth (bool, default=True): Enable moving average smoothing step
+            - wavelengths (int, default=283): Number of wavelengths after AIRS cropping & FGS addition
             - n_cpus (int, default=1): Number of CPU cores for parallel processing
             - n_planets (int, default=-1): Number of planets to process (-1 for all)
             - downsample_fgs (bool, default=False): Enable FGS1 downsampling to match AIRS cadence
@@ -162,6 +168,9 @@ class DataProcessor:
         # Check required parameters
         if input_data_path is None or output_data_path is None:
             raise ValueError('Input and output data paths must be provided.')
+        
+        if mode not in ['train', 'test']:
+            raise ValueError("Mode must be either 'train' or 'test'.")
         
         self.input_data_path = input_data_path
         self.output_data_path = output_data_path
@@ -181,6 +190,7 @@ class DataProcessor:
         self.inclusion_threshold = inclusion_threshold
         self.smooth = smooth
         self.smoothing_window = smoothing_window
+        self.wavelengths = wavelengths
         self.n_cpus = n_cpus
         self.n_planets = n_planets
         self.downsample_fgs = downsample_fgs
@@ -188,28 +198,23 @@ class DataProcessor:
         self.verbose = verbose
         self.mode = mode
 
-        # Make sure output directory exists
-        os.makedirs(self.output_data_path, exist_ok=True)
+        # Add placeholders for data generators
+        if self.mode == 'test':
+            self.training = None
+            self.validation = None
+            self.evaluation = None
+
+        elif mode == 'train':
+            self.testing = None
 
         # Set output filepath
         self.output_filepath = (f'{self.output_data_path}/{self.output_filename}')
-        
-        # Remove output hdf5 file, if it already exists
-        try:
-            os.remove(self.output_filepath)
-
-        except OSError:
-            pass
 
         # Get planet list from input data
         self.planet_list = get_planet_list(self.input_data_path, mode=self.mode)
 
         if self.n_planets != -1:
             self.planet_list = self.planet_list[:self.n_planets]
-
-        # Set downsampling indices for FGS data
-        if self.downsample_fgs:
-            self.fgs_indices = correction_funcs.fgs_downsamples(self.fgs_frames)
 
 
     def run(self):
@@ -249,6 +254,20 @@ class DataProcessor:
             - Prints progress information to stdout
         '''
 
+        # Make sure output directory exists
+        os.makedirs(self.output_data_path, exist_ok=True)
+
+        # Remove output hdf5 file, if it already exists
+        try:
+            os.remove(self.output_filepath)
+
+        except OSError:
+            pass
+
+        # Set downsampling indices for FGS data
+        if self.downsample_fgs:
+            self.fgs_indices = correction_funcs.fgs_downsamples(self.fgs_frames)
+
         # Start the multiprocessing manager
         manager = Manager()
 
@@ -265,7 +284,7 @@ class DataProcessor:
 
             worker_processes.append(
                 Process(
-                    target=self.process_data,
+                    target=self._process_data,
                     args=(input_queue, output_queue)
                 )
             )
@@ -301,7 +320,7 @@ class DataProcessor:
         output_process.close()
 
 
-    def process_data(self, input_queue, output_queue):
+    def _process_data(self, input_queue, output_queue):
         '''
         Worker process function that applies the complete signal correction pipeline.
         
@@ -623,3 +642,25 @@ class DataProcessor:
                         print(f'Workunit was: {result}')
 
         return True
+
+
+    def initialize_data_generators(self, sample_size: int = 500, validation: bool = True, n_samples: int = 10):
+
+        if self.mode == 'train':
+            self.training, self.validation, self.evaluation = make_training_datasets(
+                data_file=self.output_filepath,
+                output_data_path=self.output_data_path,
+                sample_size=sample_size,
+                n_samples=n_samples,
+                wavelengths=self.wavelengths,
+                validation=validation
+            )
+
+        elif self.mode == 'test':
+            self.testing = make_testing_dataset(
+                data_file=self.output_filepath,
+                sample_size=sample_size,
+                n_samples=n_samples,
+                wavelengths=self.wavelengths
+            )
+
