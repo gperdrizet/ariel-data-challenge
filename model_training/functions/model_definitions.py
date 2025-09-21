@@ -55,7 +55,7 @@ def cnn(
             kernel_regularizer=regularizer,
             activation='relu',
         ),
-        tf.keras.layers.Dense(config.WAVELENGTHS, activation='relu')
+        tf.keras.layers.Dense(config.WAVELENGTHS, activation='linear')
     ])
 
     # Define the optimizer
@@ -149,7 +149,7 @@ def variable_depth_cnn(
         ]
 
     layers += [
-        tf.keras.layers.Dense(config.WAVELENGTHS, activation='relu')
+        tf.keras.layers.Dense(config.WAVELENGTHS, activation='linear')
     ]
 
     model = tf.keras.Sequential(layers)
