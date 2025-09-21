@@ -19,15 +19,15 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--task',
-        choices=['preprocess_data', 'optimize_cnn'],
+        choices=['preprocess_training_data', 'preprocess_testing_data', 'optimize_cnn'],
         help='task to run'
     )
 
     args=parser.parse_args()
 
-    if args.task == 'preprocess_data':
+    if args.task == 'preprocess_training_data':
 
-        print('\nStarting data preprocessing...')
+        print('\nStarting training data preprocessing...')
         start_time = time.time()
 
         data_preprocessor = DataProcessor(
@@ -36,7 +36,8 @@ if __name__ == '__main__':
             n_cpus=18,
             n_planets=-1,
             downsample_fgs=True,
-            verbose=True
+            verbose=True,
+            mode='train'
         )
 
         data_preprocessor.run()
@@ -44,10 +45,33 @@ if __name__ == '__main__':
         elapsed_time = time.time() - start_time
         print(f'\nData preprocessing complete in {elapsed_time/60:.2f} minutes\n')
 
+
+    if args.task == 'preprocess_testing_data':
+
+        print('\nStarting testing data preprocessing...')
+        start_time = time.time()
+
+        data_preprocessor = DataProcessor(
+            input_data_path=config.RAW_DATA_DIRECTORY,
+            output_data_path=config.PROCESSED_DATA_DIRECTORY,
+            output_filename='test.h5',
+            n_cpus=1,
+            n_planets=-1,
+            downsample_fgs=True,
+            verbose=True,
+            mode='test'
+        )
+
+        data_preprocessor.run()
+
+        elapsed_time = time.time() - start_time
+        print(f'\nData preprocessing complete in {elapsed_time/60:.2f} minutes\n')
+
+
     if args.task == 'optimize_cnn':
 
         print('\nStarting CNN hyperparameter optimization...')
-        clear_tensorboard_logs()
+        #clear_tensorboard_logs()
         start_time = time.time()
 
         with mp.Pool(processes=2) as pool:

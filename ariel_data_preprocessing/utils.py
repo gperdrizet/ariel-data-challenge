@@ -9,12 +9,16 @@ import h5py
 import numpy as np
 
 
-def get_planet_list(input_data: str):
+def get_planet_list(input_data: str, mode: str) -> list:
     '''
     Retrieve list of unique planet IDs from input data.
 
     Handles reading raw data from directory structure provided in Kaggle
     zipfile download of the dataset.
+
+    Parameters:
+        input_data (str): Path to input data directory
+        mode (str): 'train' or 'test' to specify which dataset to use
 
     Returns:
         list: List of unique planet IDs
@@ -22,7 +26,7 @@ def get_planet_list(input_data: str):
         
     if Path(input_data).is_dir():
 
-        planets = list(os.listdir(f'{input_data}/train'))
+        planets = list(os.listdir(f'{input_data}/{mode}'))
         planets = [planet_path.split('/')[-1] for planet_path in planets]
 
         if len(planets) == 0:
