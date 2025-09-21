@@ -19,6 +19,7 @@ import pandas as pd
 import ariel_data_preprocessing.signal_correction_functions as correction_funcs
 import ariel_data_preprocessing.signal_extraction_functions as extraction_funcs
 from ariel_data_preprocessing.calibration_data import CalibrationData
+from ariel_data_preprocessing.data_generator_functions import make_training_datasets, make_testing_dataset
 from ariel_data_preprocessing.utils import get_planet_list
 
 
@@ -122,6 +123,7 @@ class DataProcessor:
             inclusion_threshold: float = 0.75,
             smooth: bool = True,
             smoothing_window: int = 200,
+            wavelengths: int = 283,
             n_cpus: int = 1,
             n_planets: int = -1,
             downsample_fgs: bool = False,
@@ -148,6 +150,10 @@ class DataProcessor:
             - cut_sup (int, default=321): Upper bound for AIRS spectral cropping  
             - gain (float, default=0.4369): ADC gain factor from adc_info.csv
             - offset (float, default=-1000.0): ADC offset value from adc_info.csv
+            - smoothing_window (int, default=200): Window size for moving average smoothing
+            - inclusion_threshold (float, default=0.75): Pixel inclusion threshold for extraction
+            - smooth (bool, default=True): Enable moving average smoothing step
+            - wavelengths (int, default=283): Number of wavelengths after AIRS cropping & FGS addition
             - n_cpus (int, default=1): Number of CPU cores for parallel processing
             - n_planets (int, default=-1): Number of planets to process (-1 for all)
             - downsample_fgs (bool, default=False): Enable FGS1 downsampling to match AIRS cadence
@@ -162,6 +168,9 @@ class DataProcessor:
         # Check required parameters
         if input_data_path is None or output_data_path is None:
             raise ValueError('Input and output data paths must be provided.')
+        
+        if mode not in ['train', 'test']:
+            raise ValueError("Mode must be either 'train' or 'test'.")
         
         self.input_data_path = input_data_path
         self.output_data_path = output_data_path
@@ -181,12 +190,21 @@ class DataProcessor:
         self.inclusion_threshold = inclusion_threshold
         self.smooth = smooth
         self.smoothing_window = smoothing_window
+        self.wavelengths = wavelengths
         self.n_cpus = n_cpus
         self.n_planets = n_planets
         self.downsample_fgs = downsample_fgs
         self.compress_output = compress_output
         self.verbose = verbose
         self.mode = mode
+
+        # Add placeholders for data generators
+        if self.mode == 'test':
+            self.training = None
+            self.validation = None
+
+        elif mode == 'train':
+            self.testing = None
 
         # Make sure output directory exists
         os.makedirs(self.output_data_path, exist_ok=True)
@@ -265,7 +283,7 @@ class DataProcessor:
 
             worker_processes.append(
                 Process(
-                    target=self.process_data,
+                    target=self._process_data,
                     args=(input_queue, output_queue)
                 )
             )
@@ -301,7 +319,7 @@ class DataProcessor:
         output_process.close()
 
 
-    def process_data(self, input_queue, output_queue):
+    def _process_data(self, input_queue, output_queue):
         '''
         Worker process function that applies the complete signal correction pipeline.
         
@@ -623,3 +641,21 @@ class DataProcessor:
                         print(f'Workunit was: {result}')
 
         return True
+    
+    def initialize_data_generators(self, sample_size: int = 500, n_samples: int = 10):
+
+        if self.mode == 'train':
+            self.training, self.validation = make_training_datasets(
+                data_file=self.output_filepath,
+                sample_size=sample_size,
+                wavelengths=self.wavelengths
+            )
+
+        elif self.mode == 'test':
+            self.testing = make_testing_dataset(
+                data_file=self.output_filepath,
+                sample_size=sample_size,
+                n_samples=n_samples,
+                wavelengths=self.wavelengths
+            )
+
