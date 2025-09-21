@@ -53,7 +53,7 @@ class TestUtils(unittest.TestCase):
         '''
 
         # Get planet list from test data directory
-        planet_list = utils.get_planet_list('tests/test_data/raw')
+        planet_list = utils.get_planet_list('tests/test_data/raw', mode='train')
 
         # Validate return type and basic properties
         self.assertTrue(isinstance(planet_list, list))

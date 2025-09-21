@@ -126,7 +126,8 @@ class DataProcessor:
             n_planets: int = -1,
             downsample_fgs: bool = False,
             compress_output: bool = False,
-            verbose: bool = False
+            verbose: bool = False,
+            mode: str = 'train'
     ):
         '''
         Initialize the DataProcessor class with processing parameters.
@@ -152,6 +153,7 @@ class DataProcessor:
             - downsample_fgs (bool, default=False): Enable FGS1 downsampling to match AIRS cadence
             - compress_output (bool, default=False): Enable compression for HDF5 output datasets
             - verbose (bool, default=False): Enable progress counter output
+            - mode (str, default='train'): 'train' or 'test' to specify dataset type
             
         Raises:
             ValueError: If input_data_path or output_data_path are None
@@ -159,7 +161,7 @@ class DataProcessor:
         
         # Check required parameters
         if input_data_path is None or output_data_path is None:
-            raise ValueError("Input and output data paths must be provided.")
+            raise ValueError('Input and output data paths must be provided.')
         
         self.input_data_path = input_data_path
         self.output_data_path = output_data_path
@@ -184,6 +186,7 @@ class DataProcessor:
         self.downsample_fgs = downsample_fgs
         self.compress_output = compress_output
         self.verbose = verbose
+        self.mode = mode
 
         # Make sure output directory exists
         os.makedirs(self.output_data_path, exist_ok=True)
@@ -199,7 +202,7 @@ class DataProcessor:
             pass
 
         # Get planet list from input data
-        self.planet_list = get_planet_list(self.input_data_path)
+        self.planet_list = get_planet_list(self.input_data_path, mode=self.mode)
 
         if self.n_planets != -1:
             self.planet_list = self.planet_list[:self.n_planets]
@@ -351,7 +354,7 @@ class DataProcessor:
                 break
 
             # Get path to this planet's data
-            planet_path = f'{self.input_data_path}/train/{planet}'
+            planet_path = f'{self.input_data_path}/{self.mode}/{planet}'
 
             # Load and reshape the FGS1 data
             fgs_signal = pd.read_parquet(
@@ -543,16 +546,11 @@ class DataProcessor:
         output_count = 0
 
         # Load labels, if we have them
-        try:
-            save_labels = True
+        if self.mode == 'train':
             labels = pd.read_csv(
                 f'{self.input_data_path}/train.csv',
                 index_col='planet_id'
             )
-
-        except Exception as e:
-            print(f'Error loading labels: {e}')
-            save_labels = False
 
         # Set output compression
         if self.compress_output:
@@ -582,7 +580,7 @@ class DataProcessor:
                 signal = result['signal']
 
                 # Get true spectrum for this planet, if we have it
-                if save_labels:
+                if self.mode == 'train':
                     true_spectrum = labels.loc[int(planet)].to_numpy(dtype=np.float64)
 
                 with h5py.File(self.output_filepath, 'a') as hdf:
@@ -606,7 +604,7 @@ class DataProcessor:
                             compression_opts=compression_opts
                         )
                             
-                        if save_labels:
+                        if self.mode == 'train':
                             _ = planet_group.create_dataset(
                                 'spectrum',
                                 data=true_spectrum,
