@@ -221,7 +221,7 @@ def make_testing_dataset(
     dataset = tf.data.Dataset.from_generator(
         training_data_generator,
         output_signature=(
-            tf.TensorSpec(shape=(sample_size, wavelengths), dtype=tf.float64)
+            tf.TensorSpec(shape=(n_samples, sample_size, wavelengths), dtype=tf.float64)
         )
     )
 
