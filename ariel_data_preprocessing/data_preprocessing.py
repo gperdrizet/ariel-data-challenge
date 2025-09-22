@@ -653,8 +653,8 @@ class DataProcessor:
         if self.mode == 'train':
             self.training, self.validation, self.evaluation = make_training_datasets(
                 data_file=self.output_filepath,
-                output_data_path=self.output_data_path,
                 sample_size=sample_size,
+                output_data_path=self.output_data_path,
                 n_samples=n_samples,
                 wavelengths=self.wavelengths,
                 validation=validation

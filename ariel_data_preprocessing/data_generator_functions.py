@@ -100,8 +100,8 @@ def _testing_data_loader(planet_ids: list, data_file: str, sample_size: int = 10
 
 def make_training_datasets(
         data_file: str,
-        output_data_path: str,
         sample_size: int,
+        output_data_path: str = '.',
         n_samples: int = 10,
         wavelengths: int = 283,
         validation: bool = True
