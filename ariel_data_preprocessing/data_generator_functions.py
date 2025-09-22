@@ -102,9 +102,9 @@ def make_training_datasets(
         data_file: str,
         output_data_path: str,
         sample_size: int,
-        n_samples: int,
-        wavelengths: int,
-        validation: bool
+        n_samples: int = 10,
+        wavelengths: int = 283,
+        validation: bool = True
 ) -> tuple:
     
     with h5py.File(data_file, 'r') as hdf:
@@ -201,8 +201,8 @@ def make_training_datasets(
 def make_testing_dataset(
         data_file: str,
         sample_size: int,
-        n_samples: int,
-        wavelengths: int,
+        n_samples: int = 10,
+        wavelengths: int = 283
 ) -> tuple:
 
     with h5py.File(data_file, 'r') as hdf:
