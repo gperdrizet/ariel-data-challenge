@@ -208,8 +208,6 @@ def make_testing_dataset(
     with h5py.File(data_file, 'r') as hdf:
         planet_ids = list(hdf.keys())
 
-    random.shuffle(planet_ids)
-
     training_data_generator = partial(
         _testing_data_loader,
         planet_ids=planet_ids,
