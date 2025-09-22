@@ -208,8 +208,6 @@ def make_testing_dataset(
     with h5py.File(data_file, 'r') as hdf:
         planet_ids = list(hdf.keys())
 
-    random.shuffle(planet_ids)
-
     training_data_generator = partial(
         _testing_data_loader,
         planet_ids=planet_ids,
@@ -221,7 +219,7 @@ def make_testing_dataset(
     dataset = tf.data.Dataset.from_generator(
         training_data_generator,
         output_signature=(
-            tf.TensorSpec(shape=(sample_size, wavelengths), dtype=tf.float64)
+            tf.TensorSpec(shape=(n_samples, sample_size, wavelengths), dtype=tf.float64)
         )
     )
 
