@@ -39,6 +39,10 @@ def _training_data_loader(
             for planet_id in planet_ids:
 
                 signal = hdf[planet_id]['signal'][:]
+                mask = hdf[planet_id]['mask'][:]
+                mask = np.tile(mask, (signal.shape[0], 1))
+                signal = np.ma.MaskedArray(signal, mask=mask)
+
                 spectrum = hdf[planet_id]['spectrum'][:]
 
                 # Smooth each wavelength across the frames
@@ -85,6 +89,9 @@ def _evaluation_data_loader(
             for planet_id in planet_ids:
 
                 signal = hdf[planet_id]['signal'][:]
+                mask = hdf[planet_id]['mask'][:]
+                mask = np.tile(mask, (signal.shape[0], 1))
+                signal = np.ma.MaskedArray(signal, mask=mask)
 
                 # Smooth each wavelength across the frames
                 if smooth:
@@ -137,6 +144,9 @@ def _testing_data_loader(
             for planet_id in planet_ids:
 
                 signal = hdf[planet_id]['signal'][:]
+                mask = hdf[planet_id]['mask'][:]
+                mask = np.tile(mask, (signal.shape[0], 1))
+                signal = np.ma.MaskedArray(signal, mask=mask)
 
                 if smooth:
                     # Smooth each wavelength across the frames
@@ -169,9 +179,9 @@ def make_training_datasets(
         n_samples: int = 10,
         wavelengths: int = 283,
         validation: bool = True,
-        smooth: bool = False,
+        smooth: bool = True,
         smoothing_window: int = 200,
-        standardize_wavelengths: bool = False
+        standardize_wavelengths: bool = True
 ) -> tuple:
     
     with h5py.File(data_file, 'r') as hdf:
@@ -279,9 +289,9 @@ def make_testing_dataset(
         sample_size: int,
         n_samples: int = 10,
         wavelengths: int = 283,
-        smooth=False,
+        smooth=True,
         smoothing_window: int = 200,
-        standardize_wavelengths: bool = False
+        standardize_wavelengths: bool = True
 ) -> tuple:
 
     with h5py.File(data_file, 'r') as hdf:

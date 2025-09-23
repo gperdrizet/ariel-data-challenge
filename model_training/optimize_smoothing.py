@@ -19,7 +19,7 @@ def objective(
     '''Objective function for Optuna CNN hyperparameter optimization.'''
 
     rmse = training_run(
-        model_type='variable_depth_cnn',
+        model_type='variable_smoothing_cnn',
         worker_num=worker_num,
         training_planet_ids=training_planet_ids,
         validation_planet_ids=validation_planet_ids,

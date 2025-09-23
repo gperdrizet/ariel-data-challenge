@@ -243,7 +243,6 @@ def tensorboard_callback(worker_num: int) -> tf.keras.callbacks.TensorBoard:
     return tensorboard_callback
 
 
-
 def early_stopping_callback() -> tf.keras.callbacks.EarlyStopping:
 
     '''Function to create an early stopping callback.'''
@@ -258,7 +257,6 @@ def early_stopping_callback() -> tf.keras.callbacks.EarlyStopping:
     )
 
     return early_stopping_callback
-
 
 
 def clear_tensorboard_logs() -> None:
