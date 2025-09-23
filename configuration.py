@@ -9,14 +9,14 @@
 COMPETITION_NAME = 'ariel-data-challenge-2025'
 
 # Data paths
-DATA_DIRECTORY = './data'
+DATA_DIRECTORY = 'data'
 RAW_DATA_DIRECTORY = f'{DATA_DIRECTORY}/raw'
 METADATA_DIRECTORY = f'{DATA_DIRECTORY}/metadata'
 CORRECTED_DATA_DIRECTORY = f'{DATA_DIRECTORY}/corrected'
 PROCESSED_DATA_DIRECTORY = f'{DATA_DIRECTORY}/processed'
 EXPERIMENT_RESULTS_DIRECTORY = f'{DATA_DIRECTORY}/experiment_results'
 MODELS_DIRECTORY = f'{DATA_DIRECTORY}/models'
-FIGURES_DIRECTORY = './figures'
+FIGURES_DIRECTORY = 'figures'
 TENSORBOARD_LOG_DIR = f'model_training/logs/'
 
 # Planet to use for demonstration plotting, sample frames etc.
