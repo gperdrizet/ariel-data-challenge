@@ -8,7 +8,7 @@ import multiprocessing as mp
 # Internal imports
 import configuration as config
 from ariel_data_preprocessing.data_preprocessing import DataProcessor
-from model_training import optimize_cnn
+from model_training import optimize_gpu_workers, optimize_cnn, optimize_smoothing
 from model_training.functions.utils import clear_tensorboard_logs
 
 mp.set_start_method('spawn', force=True)
@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--task',
-        choices=['preprocess_training_data', 'preprocess_testing_data', 'optimize_cnn'],
+        choices=['preprocess_training_data', 'preprocess_testing_data', 'optimize_cnn', 'optimize_smoothing'],
         help='task to run'
     )
 
@@ -91,3 +91,20 @@ if __name__ == '__main__':
 
         elapsed_time = time.time() - start_time
         print(f'\nCNN hyperparameter optimization complete in {elapsed_time/(60 * 60):.2f} hours\n')
+
+
+    if args.task == 'optimize_smoothing':
+
+        print('\nStarting CNN smoothing parameters optimization...')
+
+        if args.clear_tensorboard_logs.lower() in ['true', '1', 'yes']:
+            print('Clearing Tensorboard logs from previous run...')
+            clear_tensorboard_logs()
+
+        start_time = time.time()
+
+        with mp.Pool(processes=4) as pool:
+            pool.map(optimize_smoothing.run, range(4))
+
+        elapsed_time = time.time() - start_time
+        print(f'\nCNN smoothing optimization complete in {elapsed_time/(60 * 60):.2f} hours\n')
