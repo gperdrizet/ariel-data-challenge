@@ -11,8 +11,11 @@ import h5py
 import numpy as np
 import tensorflow as tf
 
+# Internal imports
+import ariel_data_preprocessing.signal_extraction_functions as extraction_funcs
 
-def _training_data_loader(planet_ids: list, data_file: str, sample_size: int = 100):
+
+def _training_data_loader(planet_ids: list, data_file: str, sample_size: int = 100, smoothing_window: int = 200, standardize_wavelengths: bool = True):
     '''Generator that yields signal - spectrum pairs for training/validation.
 
     Args:
@@ -31,6 +34,19 @@ def _training_data_loader(planet_ids: list, data_file: str, sample_size: int = 1
                 signal = hdf[planet_id]['signal'][:]
                 spectrum = hdf[planet_id]['spectrum'][:]
 
+                # Smooth each wavelength across the frames
+                signal = extraction_funcs.moving_average_rows(
+                    signal,
+                    smoothing_window
+                )
+
+                # Standardize each wavelength across frames
+                if standardize_wavelengths:
+                    row_means = np.mean(signal, axis=0)
+                    row_stds = np.std(signal, axis=0)
+
+                    signal = (signal - row_means[np.newaxis, :]) / row_stds[np.newaxis, :]
+
                 indices = random.sample(range(signal.shape[0]), sample_size)
                 sample = signal[sorted(indices), :]
 
@@ -41,7 +57,9 @@ def _evaluation_data_loader(
         planet_ids: list,
         data_file: str,
         sample_size: int = 100,
-        n_samples: int = 10
+        n_samples: int = 10,
+        smoothing_window: int = 200,
+        standardize_wavelengths: bool = True
 ):
     '''Generator that yields signal, spectrum pairs for training/validation/testing.
 
@@ -59,6 +77,19 @@ def _evaluation_data_loader(
 
                 signal = hdf[planet_id]['signal'][:]
 
+                # Smooth each wavelength across the frames
+                signal = extraction_funcs.moving_average_rows(
+                    signal,
+                    smoothing_window
+                )
+
+                # Standardize each wavelength across frames
+                if standardize_wavelengths:
+                    row_means = np.mean(signal, axis=0)
+                    row_stds = np.std(signal, axis=0)
+
+                    signal = (signal - row_means[np.newaxis, :]) / row_stds[np.newaxis, :]
+
                 samples = []
                 spectra = []
 
@@ -71,7 +102,14 @@ def _evaluation_data_loader(
                 yield np.array(samples), np.array(spectra)
 
 
-def _testing_data_loader(planet_ids: list, data_file: str, sample_size: int = 100, n_samples: int = 10):
+def _testing_data_loader(
+        planet_ids: list,
+        data_file: str,
+        sample_size: int = 100,
+        n_samples: int = 10,
+        smoothing_window: int = 200,
+        standardize_wavelengths: bool = True
+    ):
     '''Generator that yields signal for prediction on testing data.
 
     Args:
@@ -88,6 +126,20 @@ def _testing_data_loader(planet_ids: list, data_file: str, sample_size: int = 10
             for planet_id in planet_ids:
 
                 signal = hdf[planet_id]['signal'][:]
+
+                # Smooth each wavelength across the frames
+                signal = extraction_funcs.moving_average_rows(
+                    signal,
+                    smoothing_window
+                )
+
+                # Standardize each wavelength across frames
+                if standardize_wavelengths:
+                    row_means = np.mean(signal, axis=0)
+                    row_stds = np.std(signal, axis=0)
+
+                    signal = (signal - row_means[np.newaxis, :]) / row_stds[np.newaxis, :]
+
                 samples = []
 
                 for _ in range(n_samples):
@@ -104,7 +156,9 @@ def make_training_datasets(
         output_data_path: str = '.',
         n_samples: int = 10,
         wavelengths: int = 283,
-        validation: bool = True
+        validation: bool = True,
+        smoothing_window: int = 200,
+        standardize_wavelengths: bool = True
 ) -> tuple:
     
     with h5py.File(data_file, 'r') as hdf:
@@ -149,7 +203,9 @@ def make_training_datasets(
         _training_data_loader,
         planet_ids=training_planet_ids,
         data_file=data_file,
-        sample_size=sample_size
+        sample_size=sample_size,
+        smoothing_window=smoothing_window,
+        standardize_wavelengths=standardize_wavelengths
     )
 
     training_dataset = tf.data.Dataset.from_generator(
@@ -168,7 +224,9 @@ def make_training_datasets(
             _training_data_loader,
             planet_ids=validation_planet_ids,
             data_file=data_file,
-            sample_size=sample_size
+            sample_size=sample_size,
+            smoothing_window=smoothing_window,
+            standardize_wavelengths=standardize_wavelengths
         )
 
         validation_dataset = tf.data.Dataset.from_generator(
@@ -184,7 +242,9 @@ def make_training_datasets(
             planet_ids=validation_planet_ids,
             data_file=data_file,
             sample_size=sample_size,
-            n_samples=n_samples
+            n_samples=n_samples,
+            smoothing_window=smoothing_window,
+            standardize_wavelengths=standardize_wavelengths
         )
 
         evaluation_dataset = tf.data.Dataset.from_generator(
@@ -202,7 +262,9 @@ def make_testing_dataset(
         data_file: str,
         sample_size: int,
         n_samples: int = 10,
-        wavelengths: int = 283
+        wavelengths: int = 283,
+        smoothing_window: int = 200,
+        standardize_wavelengths: bool = True
 ) -> tuple:
 
     with h5py.File(data_file, 'r') as hdf:
@@ -213,7 +275,9 @@ def make_testing_dataset(
         planet_ids=planet_ids,
         data_file=data_file,
         sample_size=sample_size,
-        n_samples=n_samples
+        n_samples=n_samples,
+        smoothing_window=smoothing_window,
+        standardize_wavelengths=standardize_wavelengths
     )
 
     dataset = tf.data.Dataset.from_generator(

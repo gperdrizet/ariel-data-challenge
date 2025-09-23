@@ -121,8 +121,8 @@ class DataProcessor:
             gain: float = 0.4369,
             offset: float = -1000.0,
             inclusion_threshold: float = 0.75,
-            smooth: bool = True,
-            smoothing_window: int = 200,
+            smooth: bool = True,         # Unused, moved to data generator
+            smoothing_window: int = 200, # Unused, moved to data generator
             wavelengths: int = 283,
             n_cpus: int = 1,
             n_planets: int = -1,
@@ -509,18 +509,18 @@ class DataProcessor:
             mask = np.insert(airs_signal.mask, 0, fgs_signal.mask, axis=1)
             signal = np.ma.MaskedArray(signal, mask=mask)   
             
-            # Step 9: Smooth each wavelength across the frames
-            if self.smooth:
-                signal = extraction_funcs.moving_average_rows(
-                    signal,
-                    self.smoothing_window
-                )
+            # # Step 9: Smooth each wavelength across the frames
+            # if self.smooth:
+            #     signal = extraction_funcs.moving_average_rows(
+            #         signal,
+            #         self.smoothing_window
+            #     )
 
-            # Step 10: Standardize each wavelength across frames
-            row_means = np.mean(signal, axis=0)
-            row_stds = np.std(signal, axis=0)
+            # # Step 10: Standardize each wavelength across frames
+            # row_means = np.mean(signal, axis=0)
+            # row_stds = np.std(signal, axis=0)
 
-            signal = (signal - row_means[np.newaxis, :]) / row_stds[np.newaxis, :]
+            # signal = (signal - row_means[np.newaxis, :]) / row_stds[np.newaxis, :]
 
             # Collect result and submit to output worker
             result = {
