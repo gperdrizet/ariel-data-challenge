@@ -14,7 +14,7 @@ def spectral_difference_pairs(signal: np.ndarray, pairs_per_planet: int) -> np.n
     by subtracting each non-transit spectrum from each transit spectrum.'''
 
 
-    transit_signal, non_transit_signal = _extract_transit_regions(signal)
+    transit_signal, non_transit_signal = extract_transit_regions(signal)
     difference_pairs = _generate_spectrum_subtraction_dataset(
         transit_signal,
         non_transit_signal,
@@ -24,7 +24,7 @@ def spectral_difference_pairs(signal: np.ndarray, pairs_per_planet: int) -> np.n
     return difference_pairs
 
 
-def _extract_transit_regions(signal):
+def extract_transit_regions(signal):
     """
     Extract transit and non-transit regions from a signal array.
     
