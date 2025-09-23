@@ -1,18 +1,25 @@
 '''Functions to isolate transit spectra and generate spectral difference pairs.'''
 
+# Standard library imports
+import random
+
 # Third-party imports
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
 
 
-def spectral_difference_pairs(signal: np.ndarray) -> np.ndarray:
+def spectral_difference_pairs(signal: np.ndarray, pairs_per_planet: int) -> np.ndarray:
     '''Main function to take a 2D array of shape (timepoints, wavelengths), 
     identify transit and non-transit spectra, and generate spectral difference pairs
     by subtracting each non-transit spectrum from each transit spectrum.'''
 
 
     transit_signal, non_transit_signal = _extract_transit_regions(signal)
-    difference_pairs = _generate_spectrum_subtraction_dataset(transit_signal, non_transit_signal)
+    difference_pairs = _generate_spectrum_subtraction_dataset(
+        transit_signal,
+        non_transit_signal,
+        pairs_per_planet
+    )
 
     return difference_pairs
 
@@ -114,7 +121,11 @@ def _extract_transit_regions(signal):
     return transit_signal, non_transit_signal, #metadata
 
 
-def _generate_spectrum_subtraction_dataset(transit_signal, non_transit_signal):
+def _generate_spectrum_subtraction_dataset(
+        transit_signal: np.ndarray,
+        non_transit_signal: np.ndarray,
+        pairs_per_planet: int
+):
     """
     Generate final dataset by subtracting each non-transit spectrum from each transit spectrum.
     
@@ -137,10 +148,23 @@ def _generate_spectrum_subtraction_dataset(transit_signal, non_transit_signal):
         # print("Warning: No non-transit signal available")
         return np.array([])
     
+    samples = pairs_per_planet ** 0.5
+    
+    if samples % 1 != 0:
+        raise ValueError('Pairs per planet must be a perfect square')
+
+    
     # Get dimensions
     n_wavelengths = transit_signal.shape[1]
-    # n_transit_frames, n_wavelengths = transit_signal.shape[1]
-    # n_non_transit_frames = non_transit_signal.shape[0]
+    n_non_transit_frames = non_transit_signal.shape[0]
+    n_transit_frames = transit_signal.shape[0]
+
+    non_transit_indices = random.sample(range(0, n_non_transit_frames), int(samples))
+    transit_indices = random.sample(range(0, n_transit_frames), int(samples))
+
+    # Randomly sample non-transit indices
+    sampled_non_transit = non_transit_signal[non_transit_indices]
+    sampled_transit = transit_signal[transit_indices]
     
     # print(f"Transit frames: {n_transit_frames}")
     # print(f"Non-transit frames: {n_non_transit_frames}")
@@ -151,8 +175,8 @@ def _generate_spectrum_subtraction_dataset(transit_signal, non_transit_signal):
     # Reshape transit_signal to (n_transit_frames, 1, n_wavelengths)
     # Reshape non_transit_signal to (1, n_non_transit_frames, n_wavelengths)
     # Broadcasting will create (n_transit_frames, n_non_transit_frames, n_wavelengths)
-    transit_expanded = transit_signal[:, np.newaxis, :]  # Shape: (n_transit, 1, n_wavelengths)
-    non_transit_expanded = non_transit_signal[np.newaxis, :, :]  # Shape: (1, n_non_transit, n_wavelengths)
+    transit_expanded = sampled_transit[:, np.newaxis, :]  # Shape: (n_transit, 1, n_wavelengths)
+    non_transit_expanded = sampled_non_transit[np.newaxis, :, :]  # Shape: (1, n_non_transit, n_wavelengths)
     
     # Subtract non-transit from transit using broadcasting
     subtracted_spectra = transit_expanded - non_transit_expanded  # Shape: (n_transit, n_non_transit, n_wavelengths)

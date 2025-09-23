@@ -8,7 +8,7 @@ correlated double sampling (CDS), and flat field correction.
 # Standard library imports
 import os
 from multiprocessing import Manager, Process
-from random import shuffle
+# from random import shuffle
 
 # Third party imports
 import h5py
@@ -20,7 +20,6 @@ import ariel_data_preprocessing.signal_correction_functions as correction_funcs
 import ariel_data_preprocessing.signal_extraction_functions as extraction_funcs
 from ariel_data_preprocessing.calibration_data import CalibrationData
 from ariel_data_preprocessing.data_generator_functions import make_training_datasets, make_testing_dataset
-from ariel_data_preprocessing.transit_differencing import spectral_difference_pairs
 from ariel_data_preprocessing.utils import get_planet_list
 
 
@@ -523,14 +522,10 @@ class DataProcessor:
 
             signal = (signal - row_means[np.newaxis, :]) / row_stds[np.newaxis, :]
 
-            # Step 11: Extract transits and generate spectral difference pairs
-            difference_pairs = spectral_difference_pairs(signal)
-
             # Collect result and submit to output worker
             result = {
                 'planet': planet,
                 'signal': signal,
-                'difference_pairs': difference_pairs
             }
 
             output_queue.put(result)
@@ -606,7 +601,7 @@ class DataProcessor:
                 # Unpack workunit
                 planet = result['planet']
                 signal = result['signal']
-                difference_pairs = result['difference_pairs']
+                # difference_pairs = result['difference_pairs']
 
                 # Get true spectrum for this planet, if we have it
                 if self.mode == 'train':
@@ -632,13 +627,6 @@ class DataProcessor:
                             compression=compression,
                             compression_opts=compression_opts
                         )
-
-                        _ = planet_group.create_dataset(
-                            'difference_pairs',
-                            data=difference_pairs,
-                            compression=compression,
-                            compression_opts=compression_opts
-                        )
                             
                         if self.mode == 'train':
                             _ = planet_group.create_dataset(
@@ -661,7 +649,33 @@ class DataProcessor:
         return True
 
 
-    def initialize_data_generators(self, sample_size: int = 500, validation: bool = True, n_samples: int = 10):
+    def initialize_data_generators(
+            self,
+            sample_size: int = 500,
+            validation: bool = True,
+            n_samples: int = 10
+    ):
+
+        if self.mode == 'train':
+            self.training, self.validation, self.evaluation = make_training_datasets(
+                data_file=self.output_filepath,
+                sample_size=sample_size,
+                output_data_path=self.output_data_path,
+                n_samples=n_samples,
+                wavelengths=self.wavelengths,
+                validation=validation
+            )
+
+        elif self.mode == 'test':
+            self.testing = make_testing_dataset(
+                data_file=self.output_filepath,
+                sample_size=sample_size,
+                n_samples=n_samples,
+                wavelengths=self.wavelengths
+            )
+
+    
+    def initialize_difference_pair_generators(self, sample_size: int = 500, validation: bool = True, n_samples: int = 10):
 
         if self.mode == 'train':
             self.training, self.validation, self.evaluation = make_training_datasets(
