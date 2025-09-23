@@ -20,6 +20,7 @@ import ariel_data_preprocessing.signal_correction_functions as correction_funcs
 import ariel_data_preprocessing.signal_extraction_functions as extraction_funcs
 from ariel_data_preprocessing.calibration_data import CalibrationData
 from ariel_data_preprocessing.data_generator_functions import make_training_datasets, make_testing_dataset
+from ariel_data_preprocessing.transit_differencing import spectral_difference_pairs
 from ariel_data_preprocessing.utils import get_planet_list
 
 
@@ -522,10 +523,14 @@ class DataProcessor:
 
             signal = (signal - row_means[np.newaxis, :]) / row_stds[np.newaxis, :]
 
+            # Step 11: Extract transits and generate spectral difference pairs
+            difference_pairs = spectral_difference_pairs(signal)
+
             # Collect result and submit to output worker
             result = {
                 'planet': planet,
-                'signal': signal
+                'signal': signal,
+                'difference_pairs': difference_pairs
             }
 
             output_queue.put(result)
@@ -601,6 +606,7 @@ class DataProcessor:
                 # Unpack workunit
                 planet = result['planet']
                 signal = result['signal']
+                difference_pairs = result['difference_pairs']
 
                 # Get true spectrum for this planet, if we have it
                 if self.mode == 'train':
@@ -623,6 +629,13 @@ class DataProcessor:
                         _ = planet_group.create_dataset(
                             'mask',
                             data=signal.mask[0],
+                            compression=compression,
+                            compression_opts=compression_opts
+                        )
+
+                        _ = planet_group.create_dataset(
+                            'difference_pairs',
+                            data=difference_pairs,
                             compression=compression,
                             compression_opts=compression_opts
                         )
