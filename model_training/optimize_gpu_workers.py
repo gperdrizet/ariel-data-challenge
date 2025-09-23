@@ -8,7 +8,7 @@ RUNS = 3
 import optuna
 
 # Local imports
-from model_training.functions.utils import setup_optuna_run, training_run
+from model_training.functions.training_functions import setup_optuna_run, training_run
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 

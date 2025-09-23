@@ -8,8 +8,8 @@ import multiprocessing as mp
 # Internal imports
 import configuration as config
 from ariel_data_preprocessing.data_preprocessing import DataProcessor
-from model_training import optimize_gpu_workers, optimize_cnn, optimize_smoothing
-from model_training.functions.utils import clear_tensorboard_logs
+from model_training import optimize_cnn
+from model_training.functions.training_functions import clear_tensorboard_logs
 
 mp.set_start_method('spawn', force=True)
 
@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--task',
-        choices=['preprocess_training_data', 'preprocess_testing_data', 'optimize_cnn', 'optimize_smoothing'],
+        choices=['preprocess_training_data', 'preprocess_testing_data', 'optimize_cnn'],
         help='task to run'
     )
 
@@ -40,9 +40,8 @@ if __name__ == '__main__':
         data_preprocessor = DataProcessor(
             input_data_path=config.RAW_DATA_DIRECTORY,
             output_data_path=config.PROCESSED_DATA_DIRECTORY,
-            output_filename='train_no_smoothing.h5',
             n_cpus=10,
-            n_planets=-1,
+            n_planets=30,
             downsample_fgs=True,
             verbose=True,
             mode='train'
@@ -51,7 +50,7 @@ if __name__ == '__main__':
         data_preprocessor.run()
 
         elapsed_time = time.time() - start_time
-        print(f'\nData preprocessing complete in {elapsed_time/60:.2f} minutes\n')
+        print(f'\nTraining data preprocessing complete in {elapsed_time/60:.2f} minutes\n')
 
 
     if args.task == 'preprocess_testing_data':
@@ -62,9 +61,8 @@ if __name__ == '__main__':
         data_preprocessor = DataProcessor(
             input_data_path=config.RAW_DATA_DIRECTORY,
             output_data_path=config.PROCESSED_DATA_DIRECTORY,
-            output_filename='test.h5',
-            n_cpus=1,
-            n_planets=-1,
+            n_cpus=10,
+            n_planets=30,
             downsample_fgs=True,
             verbose=True,
             mode='test'
@@ -73,7 +71,7 @@ if __name__ == '__main__':
         data_preprocessor.run()
 
         elapsed_time = time.time() - start_time
-        print(f'\nData preprocessing complete in {elapsed_time/60:.2f} minutes\n')
+        print(f'\nTesting data preprocessing complete in {elapsed_time/60:.2f} minutes\n')
 
 
     if args.task == 'optimize_cnn':
@@ -86,25 +84,8 @@ if __name__ == '__main__':
 
         start_time = time.time()
 
-        with mp.Pool(processes=2) as pool:
-            pool.map(optimize_cnn.run, range(2))
+        with mp.Pool(processes=3) as pool:
+            pool.map(optimize_cnn.run, range(3))
 
         elapsed_time = time.time() - start_time
         print(f'\nCNN hyperparameter optimization complete in {elapsed_time/(60 * 60):.2f} hours\n')
-
-
-    if args.task == 'optimize_smoothing':
-
-        print('\nStarting CNN smoothing parameters optimization...')
-
-        if args.clear_tensorboard_logs.lower() in ['true', '1', 'yes']:
-            print('Clearing Tensorboard logs from previous run...')
-            clear_tensorboard_logs()
-
-        start_time = time.time()
-
-        with mp.Pool(processes=4) as pool:
-            pool.map(optimize_smoothing.run, range(4))
-
-        elapsed_time = time.time() - start_time
-        print(f'\nCNN smoothing optimization complete in {elapsed_time/(60 * 60):.2f} hours\n')

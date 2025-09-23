@@ -1,49 +1,44 @@
 '''Full run to optimize CNN hyperparameters using Optuna.'''
 
-RUNS = 1000
-
 # Third party imports
 import optuna
 
 # Local imports
-from model_training.functions.utils import setup_optuna_run, training_run
+import configuration as config
+from model_training.functions.training_functions import training_run
 
+RUNS = 1000
+TRAINING_DATA_FILE = f'{config.PROCESSED_DATA_DIRECTORY}/train-30_smoothing-10-20-40-80-160.h5'
 
 def objective(
         trial,
-        training_planet_ids: list, 
-        validation_planet_ids: list,
+        training_data_file: str,
         worker_num: int
 ) -> float:
     '''Objective function for Optuna CNN hyperparameter optimization.'''
 
     rmse = training_run(
-        model_type='variable_depth_cnn',
+        model_type='cnn',
         worker_num=worker_num,
-        training_planet_ids=training_planet_ids,
-        validation_planet_ids=validation_planet_ids,
+        training_data_file=training_data_file,
         epochs=100,
-        sample_size=trial.suggest_int('sample_size', 300, 800, step=1),
+        sample_size=trial.suggest_int('sample_size', 100, 500, step=1),
         batch_size=trial.suggest_categorical('batch_size', [1, 2, 4]),
-        steps=trial.suggest_int('steps', 1, 550, step=1),
+        steps=trial.suggest_int('steps', 1, 50, step=1),
+        smoothing_window=trial.suggest_categorical('smoothing_window', [None, 10, 20, 40, 80, 160]),
+        standardize_wavelengths=trial.suggest_categorical('standardize_wavelengths', [True, False]),
         learning_rate=trial.suggest_float('learning_rate', 1e-15, 1e-3),
         l1=trial.suggest_float('l_one', 1e-11, 1.0),
         l2=trial.suggest_float('l_two', 1e-11, 1.0),
-        cnn_layers=trial.suggest_categorical('cnn_layers', [1, 2, 3, 4, 5]),
         first_filter_set=trial.suggest_int('first_filter_set', 16, 128, step=1),
         second_filter_set=trial.suggest_int('second_filter_set', 16, 64, step=1),
         third_filter_set=trial.suggest_int('third_filter_set', 16, 64, step=1),
         fourth_filter_set=trial.suggest_int('fourth_filter_set', 16, 64, step=1),
-        fifth_filter_set=trial.suggest_int('fifth_filter_set', 16, 64, step=1),
         first_filter_size=trial.suggest_int('first_filter_size', 2, 6, step=1),
         second_filter_size=trial.suggest_int('second_filter_size', 2, 6, step=1),
         third_filter_size=trial.suggest_int('third_filter_size', 2, 6, step=1),
         fourth_filter_size=trial.suggest_int('fourth_filter_size', 2, 6, step=1),
-        fifth_filter_size=trial.suggest_int('fifth_filter_size', 2, 6, step=1),
-        dense_layers=trial.suggest_categorical('dense_layers', [1, 2, 3]),
-        first_dense_units=trial.suggest_int('first_dense_units', 8, 32, step=1),
-        second_dense_units=trial.suggest_int('second_dense_units', 8, 32, step=1),
-        third_dense_units=trial.suggest_int('third_dense_units', 8, 32, step=1),
+        dense_units=trial.suggest_int('first_dense_units', 8, 32, step=1),
         beta_one=trial.suggest_float('beta_one', 0.5, 1.0),
         beta_two=trial.suggest_float('beta_two', 0.5, 1.0),
         amsgrad=trial.suggest_categorical('amsgrad', [True, False]),
@@ -57,21 +52,20 @@ def objective(
 def run(worker_num: int) -> None:
     '''Main function to start Optuna optimization run.'''
 
-    run_assets = setup_optuna_run()
+    storage_name = f'postgresql://{config.USER}:{config.PASSWD}@{config.HOST}:{config.PORT}/{config.STUDY_NAME}'
 
     # Define the study
     study = optuna.create_study(
-        study_name='deeper_cnn_optimization',
+        study_name='cnn_optimization',
         direction='minimize',
-        storage=run_assets['storage_name'],
+        storage=storage_name,
         load_if_exists=True
     )
 
     study.optimize(
         lambda trial: objective(
             trial=trial,
-            training_planet_ids=run_assets['training_planet_ids'],
-            validation_planet_ids=run_assets['validation_planet_ids'],
+            training_data_file=TRAINING_DATA_FILE,
             worker_num=worker_num
         ),
         n_trials=RUNS

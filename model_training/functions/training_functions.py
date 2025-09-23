@@ -1,0 +1,136 @@
+'''Helper functions for model training'''
+
+# Standard library imports
+import datetime
+import os
+import shutil
+from pathlib import Path
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+# Third party imports
+import tensorflow as tf
+
+# Local imports
+import configuration as config
+from ariel_data_preprocessing.data_generator_functions import make_training_datasets
+from model_training.functions.model_definitions import cnn
+
+
+# Make sure the TensorBoard log directory exists
+Path(config.TENSORBOARD_LOG_DIR).mkdir(parents=True, exist_ok=True)
+
+# Set memory growth for GPUs
+gpus = tf.config.experimental.list_physical_devices('GPU')
+
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+
+    except RuntimeError as e:
+        print(e)
+
+
+def training_run(
+        model_type: str,
+        worker_num: int,
+        training_data_file: str,
+        epochs: int,
+        sample_size: int,
+        batch_size: int,
+        steps: int,
+        smoothing_window: int = 200,
+        standardize_wavelengths: bool = True,
+        **hyperparameters
+) -> float:
+
+    '''Function to run a single training session with fixed hyperparameters.'''
+
+    gpus = tf.config.list_physical_devices('GPU')
+
+    if worker_num == 0:
+        tf.config.set_visible_devices(gpus[0], 'GPU')
+
+    elif worker_num == 2:
+        tf.config.set_visible_devices(gpus[1], 'GPU')
+
+    else:
+        tf.config.set_visible_devices(gpus[2], 'GPU')
+
+    # Build the model with the suggested hyperparameters
+    if model_type == 'cnn':
+
+        # Create the training and validation datasets
+        training_dataset, validation_dataset, _ = make_training_datasets(
+                data_file=training_data_file,
+                sample_size=sample_size,
+                smoothing_window=smoothing_window,
+                standardize_wavelengths=standardize_wavelengths
+        )
+
+        model = cnn(
+            samples=sample_size,
+            **hyperparameters
+        )
+
+    # Train the model
+    model.fit(
+        training_dataset.batch(batch_size),
+        validation_data=validation_dataset.batch(batch_size),
+        epochs=epochs,
+        steps_per_epoch=steps,
+        validation_steps=steps,
+        verbose=0,
+        callbacks=[early_stopping_callback(), tensorboard_callback(worker_num)]
+    )
+
+    # Evaluate the model on the validation dataset and return the RMSE
+    rmse = model.evaluate(
+        validation_dataset.batch(batch_size),
+        steps=100 // batch_size, # Evaluate on 100 planets
+        return_dict=True,
+        verbose=0
+    )['RMSE']
+
+    return rmse
+
+
+def tensorboard_callback(worker_num: int) -> tf.keras.callbacks.TensorBoard:
+    '''Function to create a TensorBoard callback with a unique log directory.'''
+
+    # Set tensorboard callback
+    log_dir = config.TENSORBOARD_LOG_DIR + f'{worker_num}-{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}'
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(
+        log_dir=log_dir,
+        histogram_freq=1
+    )
+
+    return tensorboard_callback
+
+
+def early_stopping_callback() -> tf.keras.callbacks.EarlyStopping:
+
+    '''Function to create an early stopping callback.'''
+
+    early_stopping_callback = tf.keras.callbacks.EarlyStopping(
+        monitor='val_RMSE',
+        patience=20,
+        min_delta=0.002,
+        mode='min',
+        verbose=0,
+        restore_best_weights=True
+    )
+
+    return early_stopping_callback
+
+
+def clear_tensorboard_logs() -> None:
+    '''Function to clear the TensorBoard log directory.'''
+
+    try:
+        shutil.rmtree(f'{config.TENSORBOARD_LOG_DIR}')
+    except FileNotFoundError:
+        pass
+
+    Path(config.TENSORBOARD_LOG_DIR).mkdir(parents=True, exist_ok=True)
