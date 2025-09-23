@@ -653,7 +653,10 @@ class DataProcessor:
             self,
             sample_size: int = 500,
             validation: bool = True,
-            n_samples: int = 10
+            n_samples: int = 10,
+            smooth: bool = True,
+            smoothing_window: int = 200,
+            standardize_wavelengths: bool = True
     ):
 
         if self.mode == 'train':
@@ -662,8 +665,11 @@ class DataProcessor:
                 sample_size=sample_size,
                 output_data_path=self.output_data_path,
                 n_samples=n_samples,
+                validation=validation,
                 wavelengths=self.wavelengths,
-                validation=validation
+                smooth=smooth,
+                smoothing_window=smoothing_window,
+                standardize_wavelengths=standardize_wavelengths
             )
 
         elif self.mode == 'test':
@@ -671,7 +677,10 @@ class DataProcessor:
                 data_file=self.output_filepath,
                 sample_size=sample_size,
                 n_samples=n_samples,
-                wavelengths=self.wavelengths
+                wavelengths=self.wavelengths,
+                smooth=smooth,
+                smoothing_window=smoothing_window,
+                standardize_wavelengths=standardize_wavelengths
             )
 
     

@@ -15,7 +15,14 @@ import tensorflow as tf
 import ariel_data_preprocessing.signal_extraction_functions as extraction_funcs
 
 
-def _training_data_loader(planet_ids: list, data_file: str, sample_size: int = 100, smoothing_window: int = 200, standardize_wavelengths: bool = True):
+def _training_data_loader(
+        planet_ids: list,
+        data_file: str,
+        sample_size: int = 100,
+        smooth: bool = True,
+        smoothing_window: int = 200,
+        standardize_wavelengths: bool = True
+):
     '''Generator that yields signal - spectrum pairs for training/validation.
 
     Args:
@@ -35,10 +42,11 @@ def _training_data_loader(planet_ids: list, data_file: str, sample_size: int = 1
                 spectrum = hdf[planet_id]['spectrum'][:]
 
                 # Smooth each wavelength across the frames
-                signal = extraction_funcs.moving_average_rows(
-                    signal,
-                    smoothing_window
-                )
+                if smooth:
+                    signal = extraction_funcs.moving_average_rows(
+                        signal,
+                        smoothing_window
+                    )
 
                 # Standardize each wavelength across frames
                 if standardize_wavelengths:
@@ -58,6 +66,7 @@ def _evaluation_data_loader(
         data_file: str,
         sample_size: int = 100,
         n_samples: int = 10,
+        smooth: bool = True,
         smoothing_window: int = 200,
         standardize_wavelengths: bool = True
 ):
@@ -78,10 +87,11 @@ def _evaluation_data_loader(
                 signal = hdf[planet_id]['signal'][:]
 
                 # Smooth each wavelength across the frames
-                signal = extraction_funcs.moving_average_rows(
-                    signal,
-                    smoothing_window
-                )
+                if smooth:
+                    signal = extraction_funcs.moving_average_rows(
+                        signal,
+                        smoothing_window
+                    )
 
                 # Standardize each wavelength across frames
                 if standardize_wavelengths:
@@ -107,6 +117,7 @@ def _testing_data_loader(
         data_file: str,
         sample_size: int = 100,
         n_samples: int = 10,
+        smooth: bool = True,
         smoothing_window: int = 200,
         standardize_wavelengths: bool = True
     ):
@@ -127,11 +138,12 @@ def _testing_data_loader(
 
                 signal = hdf[planet_id]['signal'][:]
 
-                # Smooth each wavelength across the frames
-                signal = extraction_funcs.moving_average_rows(
-                    signal,
-                    smoothing_window
-                )
+                if smooth:
+                    # Smooth each wavelength across the frames
+                    signal = extraction_funcs.moving_average_rows(
+                        signal,
+                        smoothing_window
+                    )
 
                 # Standardize each wavelength across frames
                 if standardize_wavelengths:
@@ -157,8 +169,9 @@ def make_training_datasets(
         n_samples: int = 10,
         wavelengths: int = 283,
         validation: bool = True,
+        smooth: bool = False,
         smoothing_window: int = 200,
-        standardize_wavelengths: bool = True
+        standardize_wavelengths: bool = False
 ) -> tuple:
     
     with h5py.File(data_file, 'r') as hdf:
@@ -204,6 +217,7 @@ def make_training_datasets(
         planet_ids=training_planet_ids,
         data_file=data_file,
         sample_size=sample_size,
+        smooth=smooth,
         smoothing_window=smoothing_window,
         standardize_wavelengths=standardize_wavelengths
     )
@@ -225,6 +239,7 @@ def make_training_datasets(
             planet_ids=validation_planet_ids,
             data_file=data_file,
             sample_size=sample_size,
+            smooth=smooth,
             smoothing_window=smoothing_window,
             standardize_wavelengths=standardize_wavelengths
         )
@@ -243,6 +258,7 @@ def make_training_datasets(
             data_file=data_file,
             sample_size=sample_size,
             n_samples=n_samples,
+            smooth=smooth,
             smoothing_window=smoothing_window,
             standardize_wavelengths=standardize_wavelengths
         )
@@ -263,8 +279,9 @@ def make_testing_dataset(
         sample_size: int,
         n_samples: int = 10,
         wavelengths: int = 283,
+        smooth=False,
         smoothing_window: int = 200,
-        standardize_wavelengths: bool = True
+        standardize_wavelengths: bool = False
 ) -> tuple:
 
     with h5py.File(data_file, 'r') as hdf:
@@ -276,6 +293,7 @@ def make_testing_dataset(
         data_file=data_file,
         sample_size=sample_size,
         n_samples=n_samples,
+        smooth=smooth,
         smoothing_window=smoothing_window,
         standardize_wavelengths=standardize_wavelengths
     )
