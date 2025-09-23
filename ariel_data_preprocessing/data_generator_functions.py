@@ -2,7 +2,6 @@
 
 # Standard library imports
 from functools import partial
-from pathlib import Path
 import pickle
 import random
 
@@ -11,16 +10,12 @@ import h5py
 import numpy as np
 import tensorflow as tf
 
-# Internal imports
-import ariel_data_preprocessing.signal_extraction_functions as extraction_funcs
-
 
 def _training_data_loader(
         planet_ids: list,
         data_file: str,
         sample_size: int = 100,
-        smooth: bool = True,
-        smoothing_window: int = 200,
+        smoothing_window: int = None,
         standardize_wavelengths: bool = True
 ):
     '''Generator that yields signal - spectrum pairs for training/validation.
@@ -32,31 +27,31 @@ def _training_data_loader(
     '''
 
     with h5py.File(data_file, 'r') as hdf:
-
         while True:
+
             np.random.shuffle(planet_ids)
             
             for planet_id in planet_ids:
 
-                signal = hdf[planet_id]['signal'][:]
-                mask = hdf[planet_id]['mask'][:]
-                mask = np.tile(mask, (signal.shape[0], 1))
-                signal = np.ma.MaskedArray(signal, mask=mask)
-
                 spectrum = hdf[planet_id]['spectrum'][:]
 
-                # Smooth each wavelength across the frames
-                if smooth:
-                    signal = extraction_funcs.moving_average_rows(
-                        signal,
-                        smoothing_window
-                    )
+                # Select the appropriate smoothed signal
+                if smoothing_window is None:
+                    signal = hdf[planet_id]['smoothing_none'][:]
+                    mask = hdf[planet_id]['smoothing_none_mask'][:]
+                    mask = np.tile(mask, (signal.shape[0], 1))
+                    signal = np.ma.MaskedArray(signal, mask=mask)
 
-                # Standardize each wavelength across frames
+                else:
+                    signal = hdf[planet_id][f'smoothing_{smoothing_window}'][:]
+                    mask = hdf[planet_id][f'smoothing_{smoothing_window}_mask'][:]
+                    mask = np.tile(mask, (signal.shape[0], 1))
+                    signal = np.ma.MaskedArray(signal, mask=mask)
+
+                # Standardize each wavelength across frames, if asked
                 if standardize_wavelengths:
                     row_means = np.mean(signal, axis=0)
                     row_stds = np.std(signal, axis=0)
-
                     signal = (signal - row_means[np.newaxis, :]) / row_stds[np.newaxis, :]
 
                 indices = random.sample(range(signal.shape[0]), sample_size)
@@ -70,8 +65,7 @@ def _evaluation_data_loader(
         data_file: str,
         sample_size: int = 100,
         n_samples: int = 10,
-        smooth: bool = True,
-        smoothing_window: int = 200,
+        smoothing_window: int = None,
         standardize_wavelengths: bool = True
 ):
     '''Generator that yields signal, spectrum pairs for training/validation/testing.
@@ -83,22 +77,23 @@ def _evaluation_data_loader(
     '''
 
     with h5py.File(data_file, 'r') as hdf:
-
         while True:
-            
             for planet_id in planet_ids:
 
                 signal = hdf[planet_id]['signal'][:]
-                mask = hdf[planet_id]['mask'][:]
-                mask = np.tile(mask, (signal.shape[0], 1))
-                signal = np.ma.MaskedArray(signal, mask=mask)
 
-                # Smooth each wavelength across the frames
-                if smooth:
-                    signal = extraction_funcs.moving_average_rows(
-                        signal,
-                        smoothing_window
-                    )
+                # Select the appropriate smoothed signal
+                if smoothing_window is None:
+                    signal = hdf[planet_id]['smoothing_none'][:]
+                    mask = hdf[planet_id]['smoothing_none_mask'][:]
+                    mask = np.tile(mask, (signal.shape[0], 1))
+                    signal = np.ma.MaskedArray(signal, mask=mask)
+
+                else:
+                    signal = hdf[planet_id][f'smoothing_{smoothing_window}'][:]
+                    mask = hdf[planet_id][f'smoothing_{smoothing_window}_mask'][:]
+                    mask = np.tile(mask, (signal.shape[0], 1))
+                    signal = np.ma.MaskedArray(signal, mask=mask)
 
                 # Standardize each wavelength across frames
                 if standardize_wavelengths:
@@ -124,8 +119,7 @@ def _testing_data_loader(
         data_file: str,
         sample_size: int = 100,
         n_samples: int = 10,
-        smooth: bool = True,
-        smoothing_window: int = 200,
+        smoothing_window: int = None,
         standardize_wavelengths: bool = True
     ):
     '''Generator that yields signal for prediction on testing data.
@@ -138,22 +132,21 @@ def _testing_data_loader(
     '''
 
     with h5py.File(data_file, 'r') as hdf:
-
         while True:
-            
             for planet_id in planet_ids:
 
-                signal = hdf[planet_id]['signal'][:]
-                mask = hdf[planet_id]['mask'][:]
-                mask = np.tile(mask, (signal.shape[0], 1))
-                signal = np.ma.MaskedArray(signal, mask=mask)
+                # Select the appropriate smoothed signal
+                if smoothing_window is None:
+                    signal = hdf[planet_id]['smoothing_none'][:]
+                    mask = hdf[planet_id]['smoothing_none_mask'][:]
+                    mask = np.tile(mask, (signal.shape[0], 1))
+                    signal = np.ma.MaskedArray(signal, mask=mask)
 
-                if smooth:
-                    # Smooth each wavelength across the frames
-                    signal = extraction_funcs.moving_average_rows(
-                        signal,
-                        smoothing_window
-                    )
+                else:
+                    signal = hdf[planet_id][f'smoothing_{smoothing_window}'][:]
+                    mask = hdf[planet_id][f'smoothing_{smoothing_window}_mask'][:]
+                    mask = np.tile(mask, (signal.shape[0], 1))
+                    signal = np.ma.MaskedArray(signal, mask=mask)
 
                 # Standardize each wavelength across frames
                 if standardize_wavelengths:
@@ -175,59 +168,37 @@ def _testing_data_loader(
 def make_training_datasets(
         data_file: str,
         sample_size: int,
-        output_data_path: str = '.',
         n_samples: int = 10,
         wavelengths: int = 283,
         validation: bool = True,
-        smooth: bool = True,
-        smoothing_window: int = 200,
+        smoothing_window: int = None,
         standardize_wavelengths: bool = True
 ) -> tuple:
-    
-    with h5py.File(data_file, 'r') as hdf:
-        planet_ids = list(hdf.keys())
 
-    random.shuffle(planet_ids)
 
     if validation:
 
-        planet_ids_file = f'{output_data_path}/training_validation_split_planet_ids.pkl'
+        # Load the training and validation planet IDs for this dataset
+        base_filename = data_file.split('.')[0]
+        validation_split_filename = f'{base_filename}_validation_split.pkl'
 
-        if Path(planet_ids_file).exists():
-
-            with open(planet_ids_file, 'rb') as input_file:
-                planet_ids = pickle.load(input_file)
-                training_planet_ids = planet_ids['training']
-                validation_planet_ids = planet_ids['validation']
-
-            print('Loaded existing training/validation split')
-
-        else:
-            
-            print('Creating new training/validation split')
-
-            random.shuffle(planet_ids)
-            training_planet_ids = planet_ids[:len(planet_ids) // 2]
-            validation_planet_ids = planet_ids[len(planet_ids) // 2:]
-
-            # Save the training and validation planet IDs
-            planet_ids = {
-                'training': training_planet_ids,
-                'validation': validation_planet_ids
-            }
-
-            with open(planet_ids_file, 'wb') as output_file:
-                pickle.dump(planet_ids, output_file)
+        with open(validation_split_filename, 'rb') as input_file:
+            planet_ids = pickle.load(input_file)
+            training_planet_ids = planet_ids['training']
+            validation_planet_ids = planet_ids['validation']
 
     else:
-        training_planet_ids = planet_ids
+
+        with h5py.File(data_file, 'r') as hdf:
+            planet_ids = list(hdf.keys())
+            random.shuffle(planet_ids)
+            training_planet_ids = planet_ids
 
     training_data_generator = partial(
         _training_data_loader,
         planet_ids=training_planet_ids,
         data_file=data_file,
         sample_size=sample_size,
-        smooth=smooth,
         smoothing_window=smoothing_window,
         standardize_wavelengths=standardize_wavelengths
     )
@@ -249,7 +220,6 @@ def make_training_datasets(
             planet_ids=validation_planet_ids,
             data_file=data_file,
             sample_size=sample_size,
-            smooth=smooth,
             smoothing_window=smoothing_window,
             standardize_wavelengths=standardize_wavelengths
         )
@@ -268,7 +238,6 @@ def make_training_datasets(
             data_file=data_file,
             sample_size=sample_size,
             n_samples=n_samples,
-            smooth=smooth,
             smoothing_window=smoothing_window,
             standardize_wavelengths=standardize_wavelengths
         )
@@ -289,8 +258,7 @@ def make_testing_dataset(
         sample_size: int,
         n_samples: int = 10,
         wavelengths: int = 283,
-        smooth=True,
-        smoothing_window: int = 200,
+        smoothing_window: int = True,
         standardize_wavelengths: bool = True
 ) -> tuple:
 
@@ -303,7 +271,6 @@ def make_testing_dataset(
         data_file=data_file,
         sample_size=sample_size,
         n_samples=n_samples,
-        smooth=smooth,
         smoothing_window=smoothing_window,
         standardize_wavelengths=standardize_wavelengths
     )

@@ -1,7 +1,6 @@
 '''Utility/helper functions for Ariel data preprocessing.'''
 
 # Standard library imports
-import glob
 import os
 from pathlib import Path
 
