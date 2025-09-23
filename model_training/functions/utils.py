@@ -18,6 +18,7 @@ import tensorflow as tf
 
 # Local imports
 import configuration as config
+from ariel_data_preprocessing.data_generator_functions import make_training_datasets
 from model_training.functions.model_definitions import cnn, variable_depth_cnn
 
 
@@ -69,6 +70,8 @@ def training_run(
         sample_size: int,
         batch_size: int,
         steps: int,
+        smoothing_window: int = 200,
+        standardize_wavelengths: bool = True,
         **hyperparameters
 ) -> float:
 
@@ -82,16 +85,16 @@ def training_run(
     else:
         tf.config.set_visible_devices(gpus[1], 'GPU')
 
-    # Create the training and validation datasets
-    training_dataset, validation_dataset = create_datasets(
-        training_planet_ids,
-        validation_planet_ids,
-        sample_size=sample_size
-    )
-
     # Build the model with the suggested hyperparameters
 
     if model_type == 'cnn':
+
+        # Create the training and validation datasets
+        training_dataset, validation_dataset = create_datasets(
+            training_planet_ids,
+            validation_planet_ids,
+            sample_size=sample_size
+        )
 
         model = cnn(
             samples=sample_size,
@@ -99,6 +102,29 @@ def training_run(
         )
 
     elif model_type == 'variable_depth_cnn':
+
+        # Create the training and validation datasets
+        training_dataset, validation_dataset = create_datasets(
+            training_planet_ids,
+            validation_planet_ids,
+            sample_size=sample_size
+        )
+
+        model = variable_depth_cnn(
+            samples=sample_size,
+            **hyperparameters
+        )
+
+    elif model_type == 'variable_smoothing_cnn':
+
+        # Create the training and validation datasets
+        training_dataset, validation_dataset, _ = make_training_datasets(
+            data_file=f'{config.PROCESSED_DATA_DIRECTORY}/train_no_smoothing.h5',
+            sample_size=sample_size,
+            output_data_path=config.PROCESSED_DATA_DIRECTORY,
+            smoothing_window=smoothing_window,
+            standardize_wavelengths=standardize_wavelengths
+        )
 
         model = variable_depth_cnn(
             samples=sample_size,
