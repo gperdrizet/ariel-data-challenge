@@ -40,7 +40,8 @@ if __name__ == '__main__':
         data_preprocessor = DataProcessor(
             input_data_path=config.RAW_DATA_DIRECTORY,
             output_data_path=config.PROCESSED_DATA_DIRECTORY,
-            n_cpus=16,
+            smoothing_windows=[10, 160],
+            n_cpus=10,
             n_planets=-1,
             downsample_fgs=True,
             verbose=True,
