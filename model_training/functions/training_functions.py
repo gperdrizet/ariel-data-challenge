@@ -103,8 +103,8 @@ def training_run(
         validation_steps = 10 * sample_size # Evaluate on 10 planets
 
         # Early stopping conditions
-        patience = 20
-        min_delta = 0.002
+        patience = 50
+        min_delta = 0.05
 
     # Train the model
     model.fit(
@@ -139,6 +139,9 @@ def tensorboard_callback(worker_num: int, model_type: str) -> tf.keras.callbacks
         f'{config.TENSORBOARD_LOG_DIR}/{model_type}/{worker_num}' +
         f'-{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}'
     )
+
+    # Make sure the TensorBoard log directory exists
+    Path(f'{config.TENSORBOARD_LOG_DIR}/{model_type}').mkdir(parents=True, exist_ok=True)
 
     tensorboard_callback = tf.keras.callbacks.TensorBoard(
         log_dir=tensorboard_log_dir,
