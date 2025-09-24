@@ -18,13 +18,6 @@ def _training_data_loader(
         smoothing_window: int = None,
         standardize_wavelengths: bool = True
 ):
-    '''Generator that yields signal - spectrum pairs for training/validation.
-
-    Args:
-        planet_ids (list): List of planet IDs to include in the generator.
-        data_file (str): Path to the HDF5 file containing the data.
-        sample_size (int, optional): Number of frames to draw for each sample. Defaults to 100.
-    '''
 
     with h5py.File(data_file, 'r') as hdf:
         while True:
@@ -68,13 +61,6 @@ def _evaluation_data_loader(
         smoothing_window: int = None,
         standardize_wavelengths: bool = True
 ):
-    '''Generator that yields signal, spectrum pairs for training/validation/testing.
-
-    Args:
-        planet_ids (list): List of planet IDs to include in the generator.
-        data_file (str): Path to the HDF5 file containing the data.
-        sample_size (int, optional): Number of frames to draw from each planet. Defaults to 100.
-    '''
 
     with h5py.File(data_file, 'r') as hdf:
         while True:
@@ -121,15 +107,7 @@ def _testing_data_loader(
         n_samples: int = 10,
         smoothing_window: int = None,
         standardize_wavelengths: bool = True
-    ):
-    '''Generator that yields signal for prediction on testing data.
-
-    Args:
-        planet_ids (list): List of planet IDs to include in the generator.
-        data_file (str): Path to the HDF5 file containing the data.
-        sample_size (int, optional): Number of frames to draw for each sample. Defaults to 100.
-        n_samples (int, optional): Number of samples to draw per planet. Defaults to 10.
-    '''
+):
 
     with h5py.File(data_file, 'r') as hdf:
         while True:
