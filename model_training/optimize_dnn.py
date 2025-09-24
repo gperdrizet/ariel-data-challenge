@@ -18,27 +18,21 @@ def objective(
     '''Objective function for Optuna CNN hyperparameter optimization.'''
 
     rmse = training_run(
-        model_type='cnn',
+        model_type='dnn',
         worker_num=worker_num,
         training_data_file=training_data_file,
-        epochs=100,
-        sample_size=trial.suggest_int('sample_size', 100, 500, step=1),
-        batch_size=trial.suggest_categorical('batch_size', [1, 2, 4]),
-        steps=55,
+        epochs=1000,
+        sample_size=100,
+        batch_size=1,
+        steps=100,
         smoothing_window=trial.suggest_categorical('smoothing_window', [None, 10, 20, 40, 80, 160]),
         standardize_wavelengths=trial.suggest_categorical('standardize_wavelengths', [True, False]),
         learning_rate=trial.suggest_float('learning_rate', 1e-15, 1e-3),
         l1=trial.suggest_float('l_one', 1e-11, 1.0),
         l2=trial.suggest_float('l_two', 1e-11, 1.0),
-        first_filter_set=trial.suggest_int('first_filter_set', 16, 128, step=1),
-        second_filter_set=trial.suggest_int('second_filter_set', 16, 64, step=1),
-        third_filter_set=trial.suggest_int('third_filter_set', 16, 64, step=1),
-        fourth_filter_set=trial.suggest_int('fourth_filter_set', 16, 64, step=1),
-        first_filter_size=trial.suggest_int('first_filter_size', 2, 6, step=1),
-        second_filter_size=trial.suggest_int('second_filter_size', 2, 6, step=1),
-        third_filter_size=trial.suggest_int('third_filter_size', 2, 6, step=1),
-        fourth_filter_size=trial.suggest_int('fourth_filter_size', 2, 6, step=1),
-        dense_units=trial.suggest_int('first_dense_units', 8, 32, step=1),
+        hidden_layers=trial.suggest_categorical('hidden_layers', [2, 4, 6, 8, 10]),
+        first_layer_dense_units=trial.suggest_int('first_layer_dense_units', 16, 128),
+        dense_units_factor=trial.suggest_float('dense_units_factor', 1.1, 3.0),
         beta_one=trial.suggest_float('beta_one', 0.5, 1.0),
         beta_two=trial.suggest_float('beta_two', 0.5, 1.0),
         amsgrad=trial.suggest_categorical('amsgrad', [True, False]),
@@ -56,7 +50,7 @@ def run(worker_num: int) -> None:
 
     # Define the study
     study = optuna.create_study(
-        study_name='cnn_optimization',
+        study_name='dnn_optimization.2',
         direction='minimize',
         storage=storage_name,
         load_if_exists=True

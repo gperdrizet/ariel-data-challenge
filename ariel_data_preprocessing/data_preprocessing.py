@@ -7,6 +7,7 @@ correlated double sampling (CDS), and flat field correction.
 
 # Standard library imports
 import os
+import pickle
 from multiprocessing import Manager, Process
 from random import shuffle
 
@@ -19,7 +20,7 @@ import pandas as pd
 import ariel_data_preprocessing.signal_correction_functions as correction_funcs
 import ariel_data_preprocessing.signal_extraction_functions as extraction_funcs
 from ariel_data_preprocessing.calibration_data import CalibrationData
-from ariel_data_preprocessing.data_generator_functions import make_training_datasets, make_testing_dataset
+from ariel_data_preprocessing.transit_differencing import extract_transit_regions
 from ariel_data_preprocessing.utils import get_planet_list
 
 
@@ -107,7 +108,6 @@ class DataProcessor:
             self,
             input_data_path: str = None,
             output_data_path: str = None,
-            output_filename: str = 'train.h5',
             adc_conversion: bool = True,
             masking: bool = True,
             linearity_correction: bool = True,
@@ -121,8 +121,7 @@ class DataProcessor:
             gain: float = 0.4369,
             offset: float = -1000.0,
             inclusion_threshold: float = 0.75,
-            smooth: bool = True,
-            smoothing_window: int = 200,
+            smoothing_windows: list = [10, 20, 40, 80, 160],
             wavelengths: int = 283,
             n_cpus: int = 1,
             n_planets: int = -1,
@@ -180,7 +179,6 @@ class DataProcessor:
         self.dark_subtraction = dark_subtraction
         self.cds_subtraction = cds_subtraction
         self.flat_field_correction = flat_field_correction
-        self.output_filename = output_filename
         self.fgs_frames = fgs_frames
         self.airs_frames = airs_frames
         self.cut_inf = cut_inf
@@ -188,8 +186,7 @@ class DataProcessor:
         self.gain = gain
         self.offset = offset
         self.inclusion_threshold = inclusion_threshold
-        self.smooth = smooth
-        self.smoothing_window = smoothing_window
+        self.smoothing_windows = smoothing_windows
         self.wavelengths = wavelengths
         self.n_cpus = n_cpus
         self.n_planets = n_planets
@@ -210,6 +207,23 @@ class DataProcessor:
         # Set placeholder for the planet list
         # to be filled in when run() is called
         self.planet_list = None
+
+        # Construct output filename
+        if self.n_planets == -1:
+            base_filename = f'{self.mode}-1100'
+
+        else:
+            base_filename = f'{self.mode}-{self.n_planets}'
+
+        if self.smoothing_windows is not None:
+            smoothing_str = '-'.join(map(str, self.smoothing_windows))
+            base_filename += f'_smoothing-{smoothing_str}'
+
+        self.output_filename = f'{base_filename}.h5'
+
+        # Set validation split filename
+        if self.mode == 'train':
+            self.validation_split_filepath = f'{self.output_data_path}/{base_filename}_validation_split.pkl'
 
         # Set output filepath
         self.output_filepath = (f'{self.output_data_path}/{self.output_filename}')
@@ -267,6 +281,22 @@ class DataProcessor:
 
         if self.n_planets != -1:
             self.planet_list = self.planet_list[:self.n_planets]
+
+        # Set and save a validation split if in training mode
+        if self.mode == 'train':
+
+            shuffle(self.planet_list)
+            training_planet_ids = self.planet_list[:len(self.planet_list) // 2]
+            validation_planet_ids = self.planet_list[len(self.planet_list) // 2:]
+
+            # Save the training and validation planet IDs
+            planet_ids = {
+                'training': training_planet_ids,
+                'validation': validation_planet_ids
+            }
+
+            with open(self.validation_split_filepath, 'wb') as output_file:
+                pickle.dump(planet_ids, output_file)
 
         # Set downsampling indices for FGS data
         if self.downsample_fgs:
@@ -412,7 +442,7 @@ class DataProcessor:
                     f'Frame count mismatch for planet {planet}'
                 )
             
-            if airs_frames < self.smoothing_window:
+            if airs_frames < max(self.smoothing_windows):
                 raise ValueError(
                     f'Not enough frames for smoothing for planet {planet}'
                 )
@@ -507,26 +537,33 @@ class DataProcessor:
             # Step 8: Combine AIRS-CH0 and FGS1 signals, handling the masks separately
             signal = np.insert(airs_signal, 0, fgs_signal, axis=1)
             mask = np.insert(airs_signal.mask, 0, fgs_signal.mask, axis=1)
-            signal = np.ma.MaskedArray(signal, mask=mask)   
-            
-            # Step 9: Smooth each wavelength across the frames
-            if self.smooth:
-                signal = extraction_funcs.moving_average_rows(
-                    signal,
-                    self.smoothing_window
-                )
+            signal = np.ma.MaskedArray(signal, mask=mask)
 
-            # Step 10: Standardize each wavelength across frames
-            row_means = np.mean(signal, axis=0)
-            row_stds = np.std(signal, axis=0)
-
-            signal = (signal - row_means[np.newaxis, :]) / row_stds[np.newaxis, :]
+            # Extract transit and non-transit regions
+            transit_signal, non_transit_signal = extract_transit_regions(signal)
 
             # Collect result and submit to output worker
             result = {
                 'planet': planet,
-                'signal': signal
-            }
+                'smoothing_none': signal,
+                'smoothing_none_transit': transit_signal,
+                'smoothing_none_non_transit': non_transit_signal
+            } 
+            
+            # Step 9: Smooth each wavelength across the frames
+            if self.smoothing_windows is not None:
+                for smoothing_window in self.smoothing_windows:
+
+                    smoothed_signal = extraction_funcs.moving_average_rows(
+                        signal,
+                        smoothing_window
+                    )
+
+                    smoothed_transit_signal, smoothed_non_transit_signal = extract_transit_regions(smoothed_signal)
+
+                    result[f'smoothing_{smoothing_window}'] = smoothed_signal
+                    result[f'smoothing_{smoothing_window}_transit'] = smoothed_transit_signal
+                    result[f'smoothing_{smoothing_window}_non_transit'] = smoothed_non_transit_signal
 
             output_queue.put(result)
 
@@ -600,7 +637,7 @@ class DataProcessor:
 
                 # Unpack workunit
                 planet = result['planet']
-                signal = result['signal']
+                signal = result['smoothing_none']
 
                 # Get true spectrum for this planet, if we have it
                 if self.mode == 'train':
@@ -614,19 +651,93 @@ class DataProcessor:
                         planet_group = hdf.require_group(planet)
 
                         _ = planet_group.create_dataset(
-                            'signal',
+                            'smoothing_none',
                             data=signal.data,
                             compression=compression,
                             compression_opts=compression_opts
                         )
 
                         _ = planet_group.create_dataset(
-                            'mask',
+                            'smoothing_none_mask',
                             data=signal.mask[0],
                             compression=compression,
                             compression_opts=compression_opts
                         )
-                            
+
+                        _ = planet_group.create_dataset(
+                            'smoothing_none_transit',
+                            data=signal.data,
+                            compression=compression,
+                            compression_opts=compression_opts
+                        )
+
+                        _ = planet_group.create_dataset(
+                            'smoothing_none_transit_mask',
+                            data=signal.mask[0],
+                            compression=compression,
+                            compression_opts=compression_opts
+                        )
+
+                        _ = planet_group.create_dataset(
+                            'smoothing_none_non_transit',
+                            data=signal.data,
+                            compression=compression,
+                            compression_opts=compression_opts
+                        )
+
+                        _ = planet_group.create_dataset(
+                            'smoothing_none_non_transit_mask',
+                            data=signal.mask[0],
+                            compression=compression,
+                            compression_opts=compression_opts
+                        )
+
+                        if self.smoothing_windows is not None:
+                            for smoothing_window in self.smoothing_windows:
+                                smoothed_signal = result[f'smoothing_{smoothing_window}']
+
+                                _ = planet_group.create_dataset(
+                                    f'smoothing_{smoothing_window}',
+                                    data=smoothed_signal.data,
+                                    compression=compression,
+                                    compression_opts=compression_opts
+                                )
+
+                                _ = planet_group.create_dataset(
+                                    f'smoothing_{smoothing_window}_mask',
+                                    data=signal.mask[0],
+                                    compression=compression,
+                                    compression_opts=compression_opts
+                                )
+
+                                _ = planet_group.create_dataset(
+                                    f'smoothing_{smoothing_window}_transit',
+                                    data=smoothed_signal.data,
+                                    compression=compression,
+                                    compression_opts=compression_opts
+                                )
+
+                                _ = planet_group.create_dataset(
+                                    f'smoothing_{smoothing_window}_transit_mask',
+                                    data=signal.mask[0],
+                                    compression=compression,
+                                    compression_opts=compression_opts
+                                )
+
+                                _ = planet_group.create_dataset(
+                                    f'smoothing_{smoothing_window}_non_transit',
+                                    data=smoothed_signal.data,
+                                    compression=compression,
+                                    compression_opts=compression_opts
+                                )
+
+                                _ = planet_group.create_dataset(
+                                    f'smoothing_{smoothing_window}_non_transit_mask',
+                                    data=signal.mask[0],
+                                    compression=compression,
+                                    compression_opts=compression_opts
+                                )
+
                         if self.mode == 'train':
                             _ = planet_group.create_dataset(
                                 'spectrum',
@@ -646,25 +757,3 @@ class DataProcessor:
                         print(f'Workunit was: {result}')
 
         return True
-
-
-    def initialize_data_generators(self, sample_size: int = 500, validation: bool = True, n_samples: int = 10):
-
-        if self.mode == 'train':
-            self.training, self.validation, self.evaluation = make_training_datasets(
-                data_file=self.output_filepath,
-                sample_size=sample_size,
-                output_data_path=self.output_data_path,
-                n_samples=n_samples,
-                wavelengths=self.wavelengths,
-                validation=validation
-            )
-
-        elif self.mode == 'test':
-            self.testing = make_testing_dataset(
-                data_file=self.output_filepath,
-                sample_size=sample_size,
-                n_samples=n_samples,
-                wavelengths=self.wavelengths
-            )
-

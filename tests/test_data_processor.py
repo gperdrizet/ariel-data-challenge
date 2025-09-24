@@ -60,11 +60,11 @@ class TestDataProcessor(unittest.TestCase):
         self.planet_path = f'{self.input_data_path}/train/{self.planet}'
 
         # Pipeline parameters
-        self.airs_frames = 50   # AIRS temporal frames
-        self.fgs_frames = 50    # FGS temporal frames
-        self.cut_inf = 39       # Spectral cropping lower bound
-        self.cut_sup = 321      # Spectral cropping upper bound
-        self.smoothing_window = 5  # Temporal smoothing window
+        self.airs_frames = 50         # AIRS temporal frames
+        self.fgs_frames = 50          # FGS temporal frames
+        self.cut_inf = 39             # Spectral cropping lower bound
+        self.cut_sup = 321            # Spectral cropping upper bound
+        self.smoothing_windows = [5]  # Temporal smoothing window
 
         # Load and prep FGS1 signal data (guidance camera)
         self.fgs_signal = pd.read_parquet(
@@ -86,7 +86,7 @@ class TestDataProcessor(unittest.TestCase):
             output_data_path=self.output_data_path,
             airs_frames=self.airs_frames,
             fgs_frames=self.fgs_frames,
-            smoothing_window=self.smoothing_window
+            smoothing_windows=self.smoothing_windows
         )
 
         self.data_processor.run()
@@ -106,7 +106,7 @@ class TestDataProcessor(unittest.TestCase):
         '''
         
         # Check that output file was created
-        output_file = f'{self.output_data_path}/train.h5'
+        output_file = f'{self.output_data_path}/train-1100_smoothing-5.h5'
         self.assertTrue(os.path.exists(output_file))
 
 
@@ -127,18 +127,18 @@ class TestDataProcessor(unittest.TestCase):
         '''
 
         # Load the output data and validate structure
-        with h5py.File(f'{self.output_data_path}/train.h5', 'r') as hdf:
+        with h5py.File(f'{self.output_data_path}/train-1100_smoothing-5.h5', 'r') as hdf:
 
-            expected_frames = (self.airs_signal.shape[0] // 2) - self.data_processor.smoothing_window + 1
+            expected_frames = (self.airs_signal.shape[0] // 2) - self.data_processor.smoothing_windows[0] + 1
             expected_wavelengths = 282 + 1  # 282 AIRS + 1 FGS
 
-            self.assertEqual(len(hdf[self.planet]), 3) # Signal, mask, spectrum
-            self.assertTrue('signal' in hdf[self.planet])
-            self.assertTrue('mask' in hdf[self.planet])
+            self.assertEqual(len(hdf[self.planet]), 13) # Signal, mask, spectrum and same for transit, non-transit
+            self.assertTrue('smoothing_5' in hdf[self.planet])
+            self.assertTrue('smoothing_5_mask' in hdf[self.planet])
             self.assertTrue('spectrum' in hdf[self.planet])
-            self.assertTrue(hdf[self.planet]['signal'].shape[0] == expected_frames)
-            self.assertTrue(hdf[self.planet]['signal'].shape[1] == expected_wavelengths)
-            self.assertTrue(hdf[self.planet]['mask'].shape[0] == expected_wavelengths)
+            self.assertTrue(hdf[self.planet]['smoothing_5'].shape[0] == expected_frames)
+            self.assertTrue(hdf[self.planet]['smoothing_5'].shape[1] == expected_wavelengths)
+            self.assertTrue(hdf[self.planet]['smoothing_5_mask'].shape[0] == expected_wavelengths)
 
 if __name__ == '__main__':
     unittest.main()
