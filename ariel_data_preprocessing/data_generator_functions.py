@@ -236,7 +236,7 @@ def make_testing_dataset(
         sample_size: int,
         n_samples: int = 10,
         wavelengths: int = 283,
-        smoothing_window: int = True,
+        smoothing_window: int = None,
         standardize_wavelengths: bool = True
 ) -> tuple:
 
