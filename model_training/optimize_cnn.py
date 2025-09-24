@@ -8,7 +8,7 @@ import configuration as config
 from model_training.functions.training_functions import training_run
 
 RUNS = 1000
-TRAINING_DATA_FILE = f'{config.PROCESSED_DATA_DIRECTORY}/train-30_smoothing-10-20-40-80-160.h5'
+TRAINING_DATA_FILE = f'{config.PROCESSED_DATA_DIRECTORY}/train-1100_smoothing-10-20-40-80-160.h5'
 
 def objective(
         trial,
