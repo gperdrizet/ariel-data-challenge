@@ -24,7 +24,7 @@ def objective(
         epochs=100,
         sample_size=trial.suggest_int('sample_size', 100, 500, step=1),
         batch_size=trial.suggest_categorical('batch_size', [1, 2, 4]),
-        steps=trial.suggest_int('steps', 1, 50, step=1),
+        steps=55,
         smoothing_window=trial.suggest_categorical('smoothing_window', [None, 10, 20, 40, 80, 160]),
         standardize_wavelengths=trial.suggest_categorical('standardize_wavelengths', [True, False]),
         learning_rate=trial.suggest_float('learning_rate', 1e-15, 1e-3),
