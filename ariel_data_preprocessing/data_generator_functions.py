@@ -66,8 +66,6 @@ def _evaluation_data_loader(
         while True:
             for planet_id in planet_ids:
 
-                signal = hdf[planet_id]['signal'][:]
-
                 # Select the appropriate smoothed signal
                 if smoothing_window is None:
                     signal = hdf[planet_id]['smoothing_none'][:]
