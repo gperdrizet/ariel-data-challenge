@@ -12,9 +12,13 @@ description = "Signal correction module for Ariel Data Challenge 2025."
 readme = "ariel_data_preprocessing/README.md"
 requires-python = ">=3.8"
 dependencies = [
-  "numpy",
   "astropy",
-  "tensorflow"
+  "hdf5",
+  "numpy",
+  "pandas",
+  "pyarrow",
+  "tensorflow",
+  "scipy"
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
