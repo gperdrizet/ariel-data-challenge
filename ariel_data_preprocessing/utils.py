@@ -40,6 +40,7 @@ def get_planet_list(input_data: str, mode: str) -> list:
 def load_masked_frames(
         hdf: h5py.File,
         planet: str,
+        smoothing: str = 'none',
         load_mask: bool = True,
         return_id: bool = False,
         verbose: bool = False
@@ -66,11 +67,11 @@ def load_masked_frames(
     if planet == 'random':
         planet = np.random.choice(list(hdf.keys()))
 
-    frames = hdf[planet]['signal'][:]
+    frames = hdf[planet][f'smoothing_{smoothing}'][:]
 
     if load_mask:
         try:
-            mask = hdf[planet]['mask'][:]
+            mask = hdf[planet][f'smoothing_{smoothing}_mask'][:]
             mask = np.tile(mask, (frames.shape[0], 1, 1))
             frames = np.ma.MaskedArray(frames, mask=mask)
 

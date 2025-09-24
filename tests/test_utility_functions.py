@@ -81,10 +81,10 @@ class TestUtils(unittest.TestCase):
         '''
 
         # Load masked frames from test HDF5 file
-        with h5py.File('tests/test_data/processed/train.h5', 'r') as hdf:
+        with h5py.File('tests/test_data/processed/train-1100_smoothing-5.h5', 'r') as hdf:
             
             planet = '342072318'  # Test planet ID
-            masked_frames = utils.load_masked_frames(hdf, planet)
+            masked_frames = utils.load_masked_frames(hdf, planet, smoothing=5)
 
             # Validate return type and structure
             self.assertTrue(isinstance(masked_frames, np.ma.MaskedArray))

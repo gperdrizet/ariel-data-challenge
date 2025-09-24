@@ -106,7 +106,7 @@ class TestDataProcessor(unittest.TestCase):
         '''
         
         # Check that output file was created
-        output_file = f'{self.output_data_path}/train.h5'
+        output_file = f'{self.output_data_path}/train-1100_smoothing-5.h5'
         self.assertTrue(os.path.exists(output_file))
 
 
