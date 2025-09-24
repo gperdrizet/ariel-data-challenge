@@ -104,7 +104,7 @@ def training_run(
 
         # Early stopping conditions
         patience = 50
-        min_delta = 0.05
+        min_delta = 0.005
 
     # Train the model
     model.fit(

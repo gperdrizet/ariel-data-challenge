@@ -107,7 +107,9 @@ def dnn(**hyperparameters) -> tf.keras.Model:
         model.append(
             tf.keras.layers.Dense(
                 dense_units,
+                kernel_initializer='he_uniform',
                 kernel_regularizer=regularizer,
+                bias_initializer=tf.keras.initializers.Constant(0.1),
                 activation='relu',
             )
         )
@@ -119,7 +121,9 @@ def dnn(**hyperparameters) -> tf.keras.Model:
         model.append(
             tf.keras.layers.Dense(
                 dense_units,
+                kernel_initializer='he_uniform',
                 kernel_regularizer=regularizer,
+                bias_initializer=tf.keras.initializers.Constant(0.1),
                 activation='relu',
             )
         )
@@ -127,7 +131,14 @@ def dnn(**hyperparameters) -> tf.keras.Model:
         dense_units /= hyperparameters.dense_units_factor
         dense_units = int(dense_units)
 
-    model.append(tf.keras.layers.Dense(config.WAVELENGTHS, activation='linear'))
+    model.append(
+        tf.keras.layers.Dense(
+            config.WAVELENGTHS,
+            kernel_initializer=tf.keras.initializers.GlorotNormal(),
+            bias_initializer=tf.keras.initializers.Constant(0.014689),
+            activation='linear'
+        )
+    )
 
     model = tf.keras.Sequential(model)
 
