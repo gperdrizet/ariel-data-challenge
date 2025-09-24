@@ -84,3 +84,68 @@ def cnn(
     )
 
     return model
+
+
+def dnn(**hyperparameters) -> tf.keras.Model:
+
+    '''Builds the deep neural network regression model'''
+
+    hyperparameters = types.SimpleNamespace(**hyperparameters)
+
+    # Set-up the L1L2 for the dense layers
+    regularizer = tf.keras.regularizers.L1L2(
+        l1=hyperparameters.l1,
+        l2=hyperparameters.l2
+    )
+
+    # Define the model layers in order
+    model = [tf.keras.layers.Input((config.WAVELENGTHS))]
+
+    dense_units = hyperparameters.first_layer_dense_units
+    
+    for _ in range(int(hyperparameters.hidden_layers // 2)):
+        model.append(
+            tf.keras.layers.Dense(
+                dense_units,
+                kernel_regularizer=regularizer,
+                activation='relu',
+            )
+        )
+
+        dense_units *= hyperparameters.dense_units_factor
+        dense_units = int(dense_units)
+
+    for _ in range(int(hyperparameters.hidden_layers // 2)):
+        model.append(
+            tf.keras.layers.Dense(
+                dense_units,
+                kernel_regularizer=regularizer,
+                activation='relu',
+            )
+        )
+
+        dense_units /= hyperparameters.dense_units_factor
+        dense_units = int(dense_units)
+
+    model.append(tf.keras.layers.Dense(config.WAVELENGTHS, activation='linear'))
+
+    model = tf.keras.Sequential(model)
+
+    # Define the optimizer
+    optimizer = tf.keras.optimizers.Adam(
+        learning_rate=hyperparameters.learning_rate,
+        beta_1=hyperparameters.beta_one,
+        beta_2=hyperparameters.beta_two,
+        amsgrad=hyperparameters.amsgrad,
+        weight_decay=hyperparameters.weight_decay,
+        use_ema=hyperparameters.use_ema
+    )
+
+    # Compile the model
+    model.compile(
+        optimizer=optimizer,
+        loss=tf.keras.losses.MeanSquaredError(name='MSE'),
+        metrics=[tf.keras.metrics.RootMeanSquaredError(name='RMSE')]
+    )
+
+    return model
