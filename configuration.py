@@ -17,7 +17,7 @@ PROCESSED_DATA_DIRECTORY = f'{DATA_DIRECTORY}/processed'
 EXPERIMENT_RESULTS_DIRECTORY = f'{DATA_DIRECTORY}/experiment_results'
 MODELS_DIRECTORY = f'{DATA_DIRECTORY}/models'
 FIGURES_DIRECTORY = 'figures'
-TENSORBOARD_LOG_DIR = f'model_training/logs/'
+TENSORBOARD_LOG_DIR = 'model_training/logs'
 
 # Planet to use for demonstration plotting, sample frames etc.
 SAMPLE_PLANET = '342072318'
