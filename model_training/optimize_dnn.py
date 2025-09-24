@@ -50,7 +50,7 @@ def run(worker_num: int) -> None:
 
     # Define the study
     study = optuna.create_study(
-        study_name='dnn_optimization',
+        study_name='dnn_optimization.2',
         direction='minimize',
         storage=storage_name,
         load_if_exists=True

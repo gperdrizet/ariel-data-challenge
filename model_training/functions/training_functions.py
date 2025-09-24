@@ -50,17 +50,14 @@ def training_run(
 
     gpus = tf.config.list_physical_devices('GPU')
 
-    if worker_num in [0, 1, 2]:
-        tf.config.set_visible_devices(gpus[1], 'GPU')
-
-    elif worker_num in [3, 4, 5]:
-        tf.config.set_visible_devices(gpus[2], 'GPU')
-
-    else:
-        tf.config.set_visible_devices(gpus[0], 'GPU')
-
     # Build the model with the suggested hyperparameters
     if model_type == 'cnn':
+
+        if worker_num == 0:
+            tf.config.set_visible_devices(gpus[1], 'GPU')
+
+        elif worker_num == 1:
+            tf.config.set_visible_devices(gpus[2], 'GPU')
 
         # Create the training and validation datasets
         training_dataset, validation_dataset, _ = make_training_datasets(
@@ -75,7 +72,20 @@ def training_run(
             **hyperparameters
         )
 
+        validation_steps = 100 // batch_size  # Evaluate on 100 planets
+
+        # Early stopping conditions
+        patience = 20
+        min_delta = 0.002
+
     if model_type == 'dnn':
+
+        if worker_num in [0, 1, 2]:
+            tf.config.set_visible_devices(gpus[1], 'GPU')
+
+        elif worker_num in [3, 4, 5]:
+            tf.config.set_visible_devices(gpus[2], 'GPU')
+
 
         # Create the training and validation datasets
         training_dataset, validation_dataset, _ = make_difference_pair_datasets(
@@ -90,6 +100,12 @@ def training_run(
             **hyperparameters
         )
 
+        validation_steps = 10 * sample_size # Evaluate on 10 planets
+
+        # Early stopping conditions
+        patience = 20
+        min_delta = 0.002
+
     # Train the model
     model.fit(
         training_dataset.batch(batch_size),
@@ -98,13 +114,16 @@ def training_run(
         steps_per_epoch=steps,
         validation_steps=steps,
         verbose=0,
-        callbacks=[early_stopping_callback(), tensorboard_callback(worker_num)]
+        callbacks=[
+            early_stopping_callback(patience, min_delta), 
+            tensorboard_callback(worker_num, model_type)
+        ]
     )
 
     # Evaluate the model on the validation dataset and return the RMSE
     rmse = model.evaluate(
         validation_dataset.batch(batch_size),
-        steps=100 // batch_size, # Evaluate on 100 planets
+        steps=validation_steps, # Model specific validation steps
         return_dict=True,
         verbose=0
     )['RMSE']
@@ -112,27 +131,31 @@ def training_run(
     return rmse
 
 
-def tensorboard_callback(worker_num: int) -> tf.keras.callbacks.TensorBoard:
+def tensorboard_callback(worker_num: int, model_type: str) -> tf.keras.callbacks.TensorBoard:
     '''Function to create a TensorBoard callback with a unique log directory.'''
 
     # Set tensorboard callback
-    log_dir = config.TENSORBOARD_LOG_DIR + f'{worker_num}-{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}'
+    tensorboard_log_dir = (
+        f'{config.TENSORBOARD_LOG_DIR}/{model_type}/{worker_num}' +
+        f'-{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}'
+    )
+
     tensorboard_callback = tf.keras.callbacks.TensorBoard(
-        log_dir=log_dir,
+        log_dir=tensorboard_log_dir,
         histogram_freq=1
     )
 
     return tensorboard_callback
 
 
-def early_stopping_callback() -> tf.keras.callbacks.EarlyStopping:
+def early_stopping_callback(patience: int, min_delta: float) -> tf.keras.callbacks.EarlyStopping:
 
     '''Function to create an early stopping callback.'''
 
     early_stopping_callback = tf.keras.callbacks.EarlyStopping(
         monitor='val_RMSE',
-        patience=20,
-        min_delta=0.002,
+        patience=patience,
+        min_delta=min_delta,
         mode='min',
         verbose=0,
         restore_best_weights=True
@@ -141,12 +164,12 @@ def early_stopping_callback() -> tf.keras.callbacks.EarlyStopping:
     return early_stopping_callback
 
 
-def clear_tensorboard_logs() -> None:
+def clear_tensorboard_logs(model_type: str) -> None:
     '''Function to clear the TensorBoard log directory.'''
 
     try:
-        shutil.rmtree(f'{config.TENSORBOARD_LOG_DIR}')
+        shutil.rmtree(f'{config.TENSORBOARD_LOG_DIR}/{model_type}')
     except FileNotFoundError:
         pass
 
-    Path(config.TENSORBOARD_LOG_DIR).mkdir(parents=True, exist_ok=True)
+    Path(f'{config.TENSORBOARD_LOG_DIR}/{model_type}').mkdir(parents=True, exist_ok=True)

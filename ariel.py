@@ -80,7 +80,7 @@ if __name__ == '__main__':
 
         if args.clear_tensorboard_logs.lower() in ['true', '1', 'yes']:
             print('Clearing Tensorboard logs from previous run...')
-            clear_tensorboard_logs()
+            clear_tensorboard_logs('cnn')
 
         start_time = time.time()
 
@@ -97,12 +97,12 @@ if __name__ == '__main__':
 
         if args.clear_tensorboard_logs.lower() in ['true', '1', 'yes']:
             print('Clearing Tensorboard logs from previous run...')
-            clear_tensorboard_logs()
+            clear_tensorboard_logs('dnn')
 
         start_time = time.time()
 
-        with mp.Pool(processes=8) as pool:
-            pool.map(optimize_dnn.run, range(8))
+        with mp.Pool(processes=6) as pool:
+            pool.map(optimize_dnn.run, range(6))
 
         elapsed_time = time.time() - start_time
         print(f'\nDNN hyperparameter optimization complete in {elapsed_time/(60 * 60):.2f} hours\n')
