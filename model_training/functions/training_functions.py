@@ -14,7 +14,8 @@ import tensorflow as tf
 # Local imports
 import configuration as config
 from ariel_data_preprocessing.data_generator_functions import make_training_datasets
-from model_training.functions.model_definitions import cnn
+from ariel_data_preprocessing.difference_pair_generator_functions import make_training_datasets as make_difference_pair_datasets
+from model_training.functions.model_definitions import cnn, dnn
 
 
 # Make sure the TensorBoard log directory exists
@@ -49,14 +50,14 @@ def training_run(
 
     gpus = tf.config.list_physical_devices('GPU')
 
-    if worker_num == 0:
-        tf.config.set_visible_devices(gpus[0], 'GPU')
-
-    elif worker_num == 2:
+    if worker_num in [0, 1, 2]:
         tf.config.set_visible_devices(gpus[1], 'GPU')
 
-    else:
+    elif worker_num in [3, 4, 5]:
         tf.config.set_visible_devices(gpus[2], 'GPU')
+
+    else:
+        tf.config.set_visible_devices(gpus[0], 'GPU')
 
     # Build the model with the suggested hyperparameters
     if model_type == 'cnn':
@@ -70,6 +71,21 @@ def training_run(
         )
 
         model = cnn(
+            samples=sample_size,
+            **hyperparameters
+        )
+
+    if model_type == 'dnn':
+
+        # Create the training and validation datasets
+        training_dataset, validation_dataset, _ = make_difference_pair_datasets(
+                data_file=training_data_file,
+                sample_size=sample_size,
+                smoothing_window=smoothing_window,
+                standardize_wavelengths=standardize_wavelengths
+        )
+
+        model = dnn(
             samples=sample_size,
             **hyperparameters
         )

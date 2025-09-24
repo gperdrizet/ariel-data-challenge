@@ -8,7 +8,7 @@ import multiprocessing as mp
 # Internal imports
 import configuration as config
 from ariel_data_preprocessing.data_preprocessing import DataProcessor
-from model_training import optimize_cnn
+from model_training import optimize_cnn, optimize_dnn
 from model_training.functions.training_functions import clear_tensorboard_logs
 
 mp.set_start_method('spawn', force=True)
@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--task',
-        choices=['preprocess_training_data', 'preprocess_testing_data', 'optimize_cnn'],
+        choices=['preprocess_training_data', 'preprocess_testing_data', 'optimize_cnn', 'optimize_dnn'],
         help='task to run'
     )
 
@@ -84,8 +84,25 @@ if __name__ == '__main__':
 
         start_time = time.time()
 
-        with mp.Pool(processes=3) as pool:
-            pool.map(optimize_cnn.run, range(3))
+        with mp.Pool(processes=2) as pool:
+            pool.map(optimize_cnn.run, range(2))
 
         elapsed_time = time.time() - start_time
         print(f'\nCNN hyperparameter optimization complete in {elapsed_time/(60 * 60):.2f} hours\n')
+
+
+    if args.task == 'optimize_dnn':
+
+        print('\nStarting DNN hyperparameter optimization...')
+
+        if args.clear_tensorboard_logs.lower() in ['true', '1', 'yes']:
+            print('Clearing Tensorboard logs from previous run...')
+            clear_tensorboard_logs()
+
+        start_time = time.time()
+
+        with mp.Pool(processes=8) as pool:
+            pool.map(optimize_dnn.run, range(8))
+
+        elapsed_time = time.time() - start_time
+        print(f'\nDNN hyperparameter optimization complete in {elapsed_time/(60 * 60):.2f} hours\n')
