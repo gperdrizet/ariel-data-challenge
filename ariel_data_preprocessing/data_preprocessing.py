@@ -209,7 +209,11 @@ class DataProcessor:
         self.planet_list = None
 
         # Construct output filename
-        base_filename = f'{self.mode}-{self.n_planets}'
+        if self.n_planets == -1:
+            base_filename = f'{self.mode}-1100'
+
+        else:
+            base_filename = f'{self.mode}-{self.n_planets}'
 
         if self.smoothing_windows is not None:
             smoothing_str = '-'.join(map(str, self.smoothing_windows))
