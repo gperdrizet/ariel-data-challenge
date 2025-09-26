@@ -53,10 +53,10 @@ def training_run(
     # Build the model with the suggested hyperparameters
     if model_type == 'cnn':
 
-        if worker_num == 0:
+        if (worker_num + 1) % 2 == 0:
             tf.config.set_visible_devices(gpus[1], 'GPU')
 
-        elif worker_num == 1:
+        else:
             tf.config.set_visible_devices(gpus[2], 'GPU')
 
         # Create the training and validation datasets

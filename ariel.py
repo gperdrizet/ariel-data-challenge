@@ -85,8 +85,8 @@ if __name__ == '__main__':
 
         start_time = time.time()
 
-        with mp.Pool(processes=2) as pool:
-            pool.map(optimize_cnn.run, range(2))
+        with mp.Pool(processes=4) as pool:
+            pool.map(optimize_cnn.run, range(4))
 
         elapsed_time = time.time() - start_time
         print(f'\nCNN hyperparameter optimization complete in {elapsed_time/(60 * 60):.2f} hours\n')
