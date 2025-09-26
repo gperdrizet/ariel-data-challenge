@@ -76,7 +76,7 @@ def training_run(
 
         # Early stopping conditions
         patience = 20
-        min_delta = 0.002
+        min_delta = 0.001
 
     if model_type == 'dnn':
 
