@@ -27,6 +27,7 @@ def objective(
         steps=55,
         smoothing_window=trial.suggest_categorical('smoothing_window', [None, 10, 20, 40, 80, 160]),
         standardize_wavelengths=trial.suggest_categorical('standardize_wavelengths', [True, False]),
+        log_spectrum=trial.suggest_categorical('log_spectrum', [True, False]),
         learning_rate=trial.suggest_float('learning_rate', 1e-15, 1e-3),
         l1=trial.suggest_float('l_one', 1e-11, 1.0),
         l2=trial.suggest_float('l_two', 1e-11, 1.0),

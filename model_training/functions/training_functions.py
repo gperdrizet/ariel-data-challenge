@@ -9,6 +9,7 @@ from pathlib import Path
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # Third party imports
+import numpy as np
 import tensorflow as tf
 
 # Local imports
@@ -43,6 +44,8 @@ def training_run(
         steps: int,
         smoothing_window: int = 200,
         standardize_wavelengths: bool = True,
+        log_spectrum: bool = False,
+        evaluation_planets: int = 100,
         **hyperparameters
 ) -> float:
 
@@ -61,10 +64,11 @@ def training_run(
 
         # Create the training and validation datasets
         training_dataset, validation_dataset, _ = make_training_datasets(
-                data_file=training_data_file,
-                sample_size=sample_size,
-                smoothing_window=smoothing_window,
-                standardize_wavelengths=standardize_wavelengths
+            data_file=training_data_file,
+            sample_size=sample_size,
+            smoothing_window=smoothing_window,
+            standardize_wavelengths=standardize_wavelengths,
+            log_spectrum=log_spectrum
         )
 
         model = cnn(
@@ -89,10 +93,10 @@ def training_run(
 
         # Create the training and validation datasets
         training_dataset, validation_dataset, _ = make_difference_pair_datasets(
-                data_file=training_data_file,
-                sample_size=sample_size,
-                smoothing_window=smoothing_window,
-                standardize_wavelengths=standardize_wavelengths
+            data_file=training_data_file,
+            sample_size=sample_size,
+            smoothing_window=smoothing_window,
+            standardize_wavelengths=standardize_wavelengths
         )
 
         model = dnn(
@@ -112,7 +116,7 @@ def training_run(
         validation_data=validation_dataset.batch(batch_size),
         epochs=epochs,
         steps_per_epoch=steps,
-        validation_steps=steps,
+        validation_steps=validation_steps,
         verbose=0,
         callbacks=[
             early_stopping_callback(patience, min_delta), 
@@ -121,12 +125,32 @@ def training_run(
     )
 
     # Evaluate the model on the validation dataset and return the RMSE
-    rmse = model.evaluate(
-        validation_dataset.batch(batch_size),
-        steps=validation_steps, # Model specific validation steps
-        return_dict=True,
-        verbose=0
-    )['RMSE']
+    evaluation_data = validation_dataset.take(evaluation_planets)
+
+    signals = np.array([element[0].numpy() for element in evaluation_data])
+    spectra = np.array([element[1].numpy() for element in evaluation_data])
+
+    spectrum_predictions = []
+
+    for planet in signals:
+        spectrum_predictions.append(model.predict(planet, batch_size=batch_size, verbose=0))
+
+    spectrum_predictions = np.array(spectrum_predictions).flatten()
+    true_spectra = spectra.flatten()
+
+    if log_spectrum:
+        spectrum_predictions = tf.exp(spectrum_predictions)
+        true_spectra = tf.exp(true_spectra)
+
+    rmse = np.sqrt(np.mean((spectrum_predictions - true_spectra) ** 2))
+
+
+    # rmse = model.evaluate(
+    #     validation_dataset.batch(batch_size),
+    #     steps=validation_steps, # Model specific validation steps
+    #     return_dict=True,
+    #     verbose=0
+    # )['RMSE']
 
     return rmse
 
