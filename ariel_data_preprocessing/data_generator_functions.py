@@ -163,7 +163,6 @@ def make_training_datasets(
         log_spectrum: bool = False
 ) -> tuple:
 
-
     if validation:
 
         # Load the training and validation planet IDs for this dataset
