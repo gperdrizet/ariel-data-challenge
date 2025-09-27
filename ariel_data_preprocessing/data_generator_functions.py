@@ -16,7 +16,8 @@ def _training_data_loader(
         data_file: str,
         sample_size: int = 100,
         smoothing_window: int = None,
-        standardize_wavelengths: bool = True
+        standardize_wavelengths: bool = True,
+        log_spectrum: bool = False
 ):
 
     with h5py.File(data_file, 'r') as hdf:
@@ -26,7 +27,12 @@ def _training_data_loader(
             
             for planet_id in planet_ids:
 
-                spectrum = hdf[planet_id]['spectrum'][:]
+                # Load the true spectrum
+                if log_spectrum:
+                    spectrum = hdf[planet_id]['log_spectrum'][:]
+
+                else:
+                    spectrum = hdf[planet_id]['spectrum'][:]
 
                 # Select the appropriate smoothed signal
                 if smoothing_window is None:
@@ -59,7 +65,8 @@ def _evaluation_data_loader(
         sample_size: int = 100,
         n_samples: int = 10,
         smoothing_window: int = None,
-        standardize_wavelengths: bool = True
+        standardize_wavelengths: bool = True,
+        log_spectrum: bool = False
 ):
 
     with h5py.File(data_file, 'r') as hdf:
@@ -93,7 +100,11 @@ def _evaluation_data_loader(
 
                     indices = random.sample(range(signal.shape[0]), sample_size)
                     samples.append(signal[sorted(indices), :])
-                    spectra.append(hdf[planet_id]['spectrum'][:])
+
+                    if log_spectrum:
+                        spectra.append(hdf[planet_id]['log_spectrum'][:])
+                    else:
+                        spectra.append(hdf[planet_id]['spectrum'][:])
 
                 yield np.array(samples), np.array(spectra)
 
@@ -148,7 +159,8 @@ def make_training_datasets(
         wavelengths: int = 283,
         validation: bool = True,
         smoothing_window: int = None,
-        standardize_wavelengths: bool = True
+        standardize_wavelengths: bool = True,
+        log_spectrum: bool = False
 ) -> tuple:
 
 
@@ -176,7 +188,8 @@ def make_training_datasets(
         data_file=data_file,
         sample_size=sample_size,
         smoothing_window=smoothing_window,
-        standardize_wavelengths=standardize_wavelengths
+        standardize_wavelengths=standardize_wavelengths,
+        log_spectrum=log_spectrum
     )
 
     training_dataset = tf.data.Dataset.from_generator(
@@ -197,7 +210,8 @@ def make_training_datasets(
             data_file=data_file,
             sample_size=sample_size,
             smoothing_window=smoothing_window,
-            standardize_wavelengths=standardize_wavelengths
+            standardize_wavelengths=standardize_wavelengths,
+            log_spectrum=log_spectrum
         )
 
         validation_dataset = tf.data.Dataset.from_generator(
@@ -215,7 +229,8 @@ def make_training_datasets(
             sample_size=sample_size,
             n_samples=n_samples,
             smoothing_window=smoothing_window,
-            standardize_wavelengths=standardize_wavelengths
+            standardize_wavelengths=standardize_wavelengths,
+            log_spectrum=log_spectrum
         )
 
         evaluation_dataset = tf.data.Dataset.from_generator(
@@ -235,7 +250,8 @@ def make_testing_dataset(
         n_samples: int = 10,
         wavelengths: int = 283,
         smoothing_window: int = None,
-        standardize_wavelengths: bool = True
+        standardize_wavelengths: bool = True,
+        log_spectrum: bool = False
 ) -> tuple:
 
     with h5py.File(data_file, 'r') as hdf:
@@ -248,7 +264,8 @@ def make_testing_dataset(
         sample_size=sample_size,
         n_samples=n_samples,
         smoothing_window=smoothing_window,
-        standardize_wavelengths=standardize_wavelengths
+        standardize_wavelengths=standardize_wavelengths,
+        log_spectrum=log_spectrum
     )
 
     dataset = tf.data.Dataset.from_generator(

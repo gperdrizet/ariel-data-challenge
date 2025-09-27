@@ -752,6 +752,13 @@ class DataProcessor:
                                 compression_opts=compression_opts
                             )
 
+                            _ = planet_group.create_dataset(
+                                'log_spectrum',
+                                data=np.log(true_spectrum),
+                                compression=compression,
+                                compression_opts=compression_opts
+                            )
+
                         output_count += 1
 
                         if self.verbose:
