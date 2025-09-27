@@ -121,7 +121,7 @@ class DataProcessor:
             gain: float = 0.4369,
             offset: float = -1000.0,
             inclusion_threshold: float = 0.75,
-            smoothing_windows: list = [10, 20, 40, 80, 160],
+            smoothing_windows: list = ['None', 10, 20, 40, 80, 160],
             wavelengths: int = 283,
             n_cpus: int = 1,
             n_planets: int = -1,
@@ -442,10 +442,11 @@ class DataProcessor:
                     f'Frame count mismatch for planet {planet}'
                 )
             
-            if airs_frames < max(self.smoothing_windows):
-                raise ValueError(
-                    f'Not enough frames for smoothing for planet {planet}'
-                )
+            if self.smoothing_windows is not None:
+                if airs_frames < self.smoothing_windows[-1]:
+                    raise ValueError(
+                        f'Not enough frames for smoothing for planet {planet}'
+                    )
 
             # Load and prep calibration data
             calibration_data = CalibrationData(
@@ -547,7 +548,7 @@ class DataProcessor:
                 'planet': planet
             }
 
-            if None in self.smoothing_windows:
+            if 'none' in self.smoothing_windows or self.smoothing_windows is None:
                 
                 result['smoothing_none'] = signal
                 result['smoothing_none_transit'] = transit_signal
@@ -556,17 +557,18 @@ class DataProcessor:
             # Step 9: Smooth each wavelength across the frames
             if self.smoothing_windows is not None:
                 for smoothing_window in self.smoothing_windows:
+                    if smoothing_window != 'none':
 
-                    smoothed_signal = extraction_funcs.moving_average_rows(
-                        signal,
-                        smoothing_window
-                    )
+                        smoothed_signal = extraction_funcs.moving_average_rows(
+                            signal,
+                            smoothing_window
+                        )
 
-                    smoothed_transit_signal, smoothed_non_transit_signal = extract_transit_regions(smoothed_signal)
+                        smoothed_transit_signal, smoothed_non_transit_signal = extract_transit_regions(smoothed_signal)
 
-                    result[f'smoothing_{smoothing_window}'] = smoothed_signal
-                    result[f'smoothing_{smoothing_window}_transit'] = smoothed_transit_signal
-                    result[f'smoothing_{smoothing_window}_non_transit'] = smoothed_non_transit_signal
+                        result[f'smoothing_{smoothing_window}'] = smoothed_signal
+                        result[f'smoothing_{smoothing_window}_transit'] = smoothed_transit_signal
+                        result[f'smoothing_{smoothing_window}_non_transit'] = smoothed_non_transit_signal
 
             output_queue.put(result)
 
@@ -652,7 +654,7 @@ class DataProcessor:
                         # Save complete spectrum and mask
                         planet_group = hdf.require_group(planet)
 
-                        if None in self.smoothing_windows:
+                        if 'none' in self.smoothing_windows or self.smoothing_windows is None:
 
                             signal = result['smoothing_none']
 
@@ -700,49 +702,51 @@ class DataProcessor:
 
                         if self.smoothing_windows is not None:
                             for smoothing_window in self.smoothing_windows:
-                                smoothed_signal = result[f'smoothing_{smoothing_window}']
+                                if smoothing_window != 'none':
 
-                                _ = planet_group.create_dataset(
-                                    f'smoothing_{smoothing_window}',
-                                    data=smoothed_signal.data,
-                                    compression=compression,
-                                    compression_opts=compression_opts
-                                )
+                                    smoothed_signal = result[f'smoothing_{smoothing_window}']
 
-                                _ = planet_group.create_dataset(
-                                    f'smoothing_{smoothing_window}_mask',
-                                    data=smoothed_signal.mask[0],
-                                    compression=compression,
-                                    compression_opts=compression_opts
-                                )
+                                    _ = planet_group.create_dataset(
+                                        f'smoothing_{smoothing_window}',
+                                        data=smoothed_signal.data,
+                                        compression=compression,
+                                        compression_opts=compression_opts
+                                    )
 
-                                _ = planet_group.create_dataset(
-                                    f'smoothing_{smoothing_window}_transit',
-                                    data=smoothed_signal.data,
-                                    compression=compression,
-                                    compression_opts=compression_opts
-                                )
+                                    _ = planet_group.create_dataset(
+                                        f'smoothing_{smoothing_window}_mask',
+                                        data=smoothed_signal.mask[0],
+                                        compression=compression,
+                                        compression_opts=compression_opts
+                                    )
 
-                                _ = planet_group.create_dataset(
-                                    f'smoothing_{smoothing_window}_transit_mask',
-                                    data=smoothed_signal.mask[0],
-                                    compression=compression,
-                                    compression_opts=compression_opts
-                                )
+                                    _ = planet_group.create_dataset(
+                                        f'smoothing_{smoothing_window}_transit',
+                                        data=smoothed_signal.data,
+                                        compression=compression,
+                                        compression_opts=compression_opts
+                                    )
 
-                                _ = planet_group.create_dataset(
-                                    f'smoothing_{smoothing_window}_non_transit',
-                                    data=smoothed_signal.data,
-                                    compression=compression,
-                                    compression_opts=compression_opts
-                                )
+                                    _ = planet_group.create_dataset(
+                                        f'smoothing_{smoothing_window}_transit_mask',
+                                        data=smoothed_signal.mask[0],
+                                        compression=compression,
+                                        compression_opts=compression_opts
+                                    )
 
-                                _ = planet_group.create_dataset(
-                                    f'smoothing_{smoothing_window}_non_transit_mask',
-                                    data=smoothed_signal.mask[0],
-                                    compression=compression,
-                                    compression_opts=compression_opts
-                                )
+                                    _ = planet_group.create_dataset(
+                                        f'smoothing_{smoothing_window}_non_transit',
+                                        data=smoothed_signal.data,
+                                        compression=compression,
+                                        compression_opts=compression_opts
+                                    )
+
+                                    _ = planet_group.create_dataset(
+                                        f'smoothing_{smoothing_window}_non_transit_mask',
+                                        data=smoothed_signal.mask[0],
+                                        compression=compression,
+                                        compression_opts=compression_opts
+                                    )
 
                         if self.mode == 'train':
                             _ = planet_group.create_dataset(

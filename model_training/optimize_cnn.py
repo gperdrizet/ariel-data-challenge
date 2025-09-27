@@ -8,7 +8,7 @@ import configuration as config
 from model_training.functions.training_functions import training_run
 
 RUNS = 1000
-TRAINING_DATA_FILE = f'{config.PROCESSED_DATA_DIRECTORY}/train-1100_smoothing-10-20-40-80-160.h5'
+TRAINING_DATA_FILE = f'{config.PROCESSED_DATA_DIRECTORY}/train-1100_smoothing-none-10-20-40-80-160.h5'
 
 def objective(
         trial,
@@ -25,7 +25,7 @@ def objective(
         sample_size=trial.suggest_int('sample_size', 100, 500, step=1),
         batch_size=trial.suggest_categorical('batch_size', [1, 2, 4]),
         steps=55,
-        smoothing_window=trial.suggest_categorical('smoothing_window', [None, 10, 20, 40, 80, 160]),
+        smoothing_window=trial.suggest_categorical('smoothing_window', ['none', 10, 20, 40, 80, 160]),
         standardize_wavelengths=trial.suggest_categorical('standardize_wavelengths', [True, False]),
         log_spectrum=trial.suggest_categorical('log_spectrum', [True, False]),
         learning_rate=trial.suggest_float('learning_rate', 1e-15, 1e-3),
@@ -57,7 +57,7 @@ def run(worker_num: int) -> None:
 
     # Define the study
     study = optuna.create_study(
-        study_name='cnn_optimization.2',
+        study_name='cnn_optimization.3',
         direction='minimize',
         storage=storage_name,
         load_if_exists=True
