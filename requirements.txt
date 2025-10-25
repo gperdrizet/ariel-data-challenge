@@ -1,4 +1,4 @@
-astropy==5.2.2
+astropy==7.1.1
 GPUtil==1.4.0
 gunicorn==23.0.0
 h5py==3.11.0
@@ -6,7 +6,7 @@ ipykernel==6.29.5
 matplotlib==3.7.5
 optuna==4.3.0
 optuna-dashboard==0.18.0
-pandas==2.0.3
+pandas ==2.3.3
 psutil==7.0.0
 psycopg2-binary==2.9.10
 pyarrow==17.0.0
